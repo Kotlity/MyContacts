@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="currentIndicator">#11E415</color>
+    <color name="indicator">#795981</color>
+    <color name="cardPager">#DF8554</color>
+    <color name="pager">#131311</color>
+    <color name="pagerButton">#3C43C6</color>
+</resources>

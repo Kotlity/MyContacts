@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Splash.MyContacts" parent="Theme.SplashScreen" >
+
+        <item name="windowSplashScreenAnimatedIcon">@drawable/icon_main</item>
+        <item name="postSplashScreenTheme">@style/Theme.MyContacts</item>
+    </style>
+
+</resources>
