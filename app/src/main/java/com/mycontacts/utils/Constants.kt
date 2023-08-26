@@ -15,4 +15,6 @@ object Constants {
 
     val _22sp = 22.sp
     val _18sp = 18.sp
+
+    const val hasUserAlreadyEnteredTheApplicationKey = "hasUserAlreadyEnteredTheApplicationKey"
 }

@@ -24,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.mycontacts.R
 import com.mycontacts.data.pager.pagerList
+import com.mycontacts.presentation.pager.events.OnPagerEvent
 import com.mycontacts.utils.Constants
 import com.mycontacts.utils.Constants.second
 import com.mycontacts.utils.Constants.zero
@@ -31,14 +32,17 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun Pager() {
+fun Pager(
+    onEvent: (OnPagerEvent) -> Unit
+) {
 
-    val pagerState = rememberPagerState(zero)
+    val pagerState = rememberPagerState(zero) {
+        pagerList.size
+    }
     val coroutineScope = rememberCoroutineScope()
 
     Box(modifier = Modifier.fillMaxSize()) {
         HorizontalPager(
-            pageCount = pagerList.size,
             state = pagerState,
         ) { currentPage ->
             PagerContent(
@@ -61,7 +65,7 @@ fun Pager() {
             }
             if (pagerState.currentPage == second) {
                 Button(
-                    onClick = { },
+                    onClick = { onEvent(OnPagerEvent.OnButtonClick) },
                     modifier = Modifier.fillMaxWidth(Constants._05Float),
                     elevation = ButtonDefaults.buttonElevation(
                         defaultElevation = dimensionResource(id = R.dimen._0dp),
