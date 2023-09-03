@@ -1,6 +1,7 @@
 package com.mycontacts.utils
 
 import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.core.booleanPreferencesKey
 
 object Constants {
 
@@ -8,6 +9,7 @@ object Constants {
     const val second = 2
     const val pagerImageSmallSizeInPixels = 512
     const val zero = 0
+    const val splashDelay = 500L
 
     const val _06Float = 0.6f
     const val _04Float = 0.4f
@@ -16,5 +18,8 @@ object Constants {
     val _22sp = 22.sp
     val _18sp = 18.sp
 
-    const val hasUserAlreadyEnteredTheApplicationKey = "hasUserAlreadyEnteredTheApplicationKey"
+    const val dataStoreName = "dataStore"
+    private const val hasUserAlreadyClickedOnStartButtonName = "hasUserAlreadyClickedOnStartButton"
+
+    val hasUserAlreadyClickedOnStartButton = booleanPreferencesKey(hasUserAlreadyClickedOnStartButtonName)
 }

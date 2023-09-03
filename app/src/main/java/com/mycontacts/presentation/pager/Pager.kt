@@ -22,21 +22,18 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.navigation.NavHostController
 import com.mycontacts.R
 import com.mycontacts.data.pager.pagerList
 import com.mycontacts.presentation.pager.events.OnPagerEvent
 import com.mycontacts.utils.Constants
 import com.mycontacts.utils.Constants.second
 import com.mycontacts.utils.Constants.zero
-import com.mycontacts.utils.ScreenRoutes
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Pager(
-    onEvent: (OnPagerEvent) -> Unit,
-    navHostController: NavHostController
+    onEvent: (OnPagerEvent) -> Unit
 ) {
 
     val pagerState = rememberPagerState(zero) {
@@ -70,11 +67,6 @@ fun Pager(
                 Button(
                     onClick = {
                         onEvent(OnPagerEvent.OnButtonClick)
-                        navHostController.navigate(ScreenRoutes.Main.route) {
-                            popUpTo(ScreenRoutes.Main.route) {
-                                inclusive = false
-                            }
-                        }
                 },
                     modifier = Modifier.fillMaxWidth(Constants._05Float),
                     elevation = ButtonDefaults.buttonElevation(

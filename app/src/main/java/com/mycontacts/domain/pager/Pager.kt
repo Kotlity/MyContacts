@@ -1,8 +1,10 @@
 package com.mycontacts.domain.pager
 
+import kotlinx.coroutines.flow.Flow
+
 interface Pager {
 
-    fun saveUserPressedStartButton()
+    suspend fun saveUserPressedStartButton()
 
-    fun hasUserAlreadyPressedStartButton(): Boolean
+    fun hasUserAlreadyPressedStartButton(): Flow<Boolean>
 }
