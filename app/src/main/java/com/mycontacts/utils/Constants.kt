@@ -10,6 +10,7 @@ object Constants {
     const val pagerImageSmallSizeInPixels = 512
     const val zero = 0
     const val splashDelay = 500L
+    const val searchDelay = 300L
 
     const val _06Float = 0.6f
     const val _04Float = 0.4f
@@ -20,6 +21,7 @@ object Constants {
 
     const val dataStoreName = "dataStore"
     private const val hasUserAlreadyClickedOnStartButtonName = "hasUserAlreadyClickedOnStartButton"
+    const val emptyContactsErrorMessage = "Nothing to show..."
 
     val hasUserAlreadyClickedOnStartButton = booleanPreferencesKey(hasUserAlreadyClickedOnStartButtonName)
 }
