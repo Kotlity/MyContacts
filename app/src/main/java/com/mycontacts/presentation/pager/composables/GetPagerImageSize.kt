@@ -1,4 +1,4 @@
-package com.mycontacts.presentation.pager
+package com.mycontacts.presentation.pager.composables
 
 import android.content.res.Resources
 import android.graphics.BitmapFactory

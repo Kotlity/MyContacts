@@ -8,5 +8,7 @@ interface Main {
 
     fun getAllContacts(contentResolver: ContentResolver): Flow<List<ContactInfo>>
 
+    fun searchContacts(contentResolver: ContentResolver, searchQuery: String): Flow<List<ContactInfo>>
+
     suspend fun getContactId(contactInfo: ContactInfo): Long
 }

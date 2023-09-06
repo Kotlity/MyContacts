@@ -6,16 +6,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.mycontacts.presentation.general_content_screen.GeneralContentScreen
-import com.mycontacts.presentation.pager.Pager
+import com.mycontacts.presentation.main.events.MainEvent
+import com.mycontacts.presentation.main.screen.MainScreen
+import com.mycontacts.presentation.main.viewmodels.MainViewModel
+import com.mycontacts.presentation.pager.screen.PagerScreen
 import com.mycontacts.presentation.pager.viewmodels.PagerViewModel
 import com.mycontacts.utils.ScreenRoutes
 
@@ -37,19 +43,23 @@ fun NavigationHost(
         ) {
             composable(ScreenRoutes.Pager.route) {
                 val pagerViewModel: PagerViewModel = hiltViewModel()
-                Pager(onEvent = pagerViewModel::onEvent)
+                PagerScreen(onEvent = pagerViewModel::onEvent)
             }
             composable(ScreenRoutes.Main.route) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterVertically),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    items(100) { index ->
-                        Text(text = "${index.plus(1)}.Testing in Main Screen")
+                val mainViewModel: MainViewModel = hiltViewModel()
+                val contactsState by mainViewModel.contactsState.collectAsStateWithLifecycle()
+                val contactsSearchState by mainViewModel.contactsSearchState.collectAsStateWithLifecycle()
+                val context = LocalContext.current
+                val contentResolver = context.contentResolver
+                mainViewModel.onEvent(contentResolver = contentResolver, MainEvent.Initial)
+
+                MainScreen(
+                    contactsState = contactsState,
+                    contactsSearchState = contactsSearchState,
+                    event = { mainEvent ->
+                        mainViewModel.onEvent(contentResolver = contentResolver, mainEvent)
                     }
-                }
+                )
             }
             composable(ScreenRoutes.Settings.route) {
                 LazyColumn(

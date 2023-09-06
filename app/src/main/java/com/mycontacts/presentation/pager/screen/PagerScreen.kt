@@ -1,4 +1,4 @@
-package com.mycontacts.presentation.pager
+package com.mycontacts.presentation.pager.screen
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +24,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.mycontacts.R
 import com.mycontacts.data.pager.pagerList
+import com.mycontacts.presentation.pager.composables.PagerContent
+import com.mycontacts.presentation.pager.composables.PagerIndicatorsSection
 import com.mycontacts.presentation.pager.events.OnPagerEvent
 import com.mycontacts.utils.Constants
 import com.mycontacts.utils.Constants.second
@@ -32,7 +34,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun Pager(
+fun PagerScreen(
     onEvent: (OnPagerEvent) -> Unit
 ) {
 

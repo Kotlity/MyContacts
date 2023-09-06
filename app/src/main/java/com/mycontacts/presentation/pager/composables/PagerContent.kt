@@ -1,6 +1,5 @@
-package com.mycontacts.presentation.pager
+package com.mycontacts.presentation.pager.composables
 
-import android.content.res.Configuration.UI_MODE_NIGHT_YES
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -25,10 +24,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import com.mycontacts.R
 import com.mycontacts.data.pager.PagerData
-import com.mycontacts.data.pager.pagerList
 import com.mycontacts.utils.Constants._04Float
 import com.mycontacts.utils.Constants._18sp
 import com.mycontacts.utils.Constants._06Float
@@ -100,13 +97,4 @@ fun PagerContent(
             }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Preview(showBackground = true, uiMode = UI_MODE_NIGHT_YES)
-@Composable
-fun PreviewPagerContent() {
-    PagerContent(
-        pagerData = pagerList[2]
-    )
 }

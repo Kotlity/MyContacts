@@ -1,6 +1,5 @@
-package com.mycontacts.presentation.pager
+package com.mycontacts.presentation.pager.composables
 
-import android.content.res.Configuration.UI_MODE_NIGHT_YES
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.updateTransition
@@ -20,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.tooling.preview.Preview
 import com.mycontacts.R
 import com.mycontacts.utils.Constants.third
 
@@ -39,7 +37,8 @@ fun PagerIndicatorsSection(
             val indicatorTransition = updateTransition(targetState = currentPage == currentIndicator, label = null)
 
             val animatedIndicatorSize by indicatorTransition.animateDp(
-                label = "") { isTheCurrentIndicator ->
+                label = ""
+            ) { isTheCurrentIndicator ->
                 when (isTheCurrentIndicator) {
                     true -> dimensionResource(id = R.dimen._30dp)
                     false -> dimensionResource(id = R.dimen._20dp)
@@ -66,11 +65,4 @@ fun PagerIndicatorsSection(
             )
         }
     }
-}
-
-@Preview(showBackground = true)
-@Preview(showBackground = true, uiMode = UI_MODE_NIGHT_YES)
-@Composable
-fun PreviewPagerIndicatorsSection() {
-    PagerIndicatorsSection(currentPage = 1) { }
 }
