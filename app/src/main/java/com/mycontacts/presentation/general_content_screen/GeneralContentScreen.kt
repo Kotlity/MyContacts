@@ -52,7 +52,9 @@ fun GeneralContentScreen(
                     route = currentRoute
                 ) { sectionRoute ->
                     navHostController.navigate(sectionRoute) {
-                        popUpTo(sectionRoute)
+                        popUpTo(sectionRoute) {
+                            inclusive = true
+                        }
                         launchSingleTop = true
                     }
                 }

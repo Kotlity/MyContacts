@@ -1,6 +1,8 @@
 package com.mycontacts.presentation.main.viewmodels
 
 import android.content.ContentResolver
+import android.os.Build
+import android.os.Environment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mycontacts.data.contacts.ContactInfo
@@ -8,32 +10,56 @@ import com.mycontacts.domain.main.Main
 import com.mycontacts.presentation.main.events.MainEvent
 import com.mycontacts.presentation.main.states.ContactsSearchState
 import com.mycontacts.presentation.main.states.ContactsState
-import com.mycontacts.utils.Constants.contactsNotFound
-import com.mycontacts.utils.Constants.emptyContactsErrorMessage
+import com.mycontacts.presentation.main.states.PermissionsForMainScreenState
 import com.mycontacts.utils.Constants.searchDelay
+import com.mycontacts.utils.Resources
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
 
-    private var _contactsState = MutableStateFlow(ContactsState())
-    val contactsState = _contactsState.asStateFlow()
+    var isUserHasPermissionsForMainScreen = MutableStateFlow(PermissionsForMainScreenState())
+        private set
 
-    private var _contactsSearchState = MutableStateFlow(ContactsSearchState())
-    val contactsSearchState = _contactsSearchState.asStateFlow()
+    var contactsState = MutableStateFlow(ContactsState())
+        private set
+
+    var contactsSearchState = MutableStateFlow(ContactsSearchState())
+        private set
+
+    private var contactsJob: Job? = null
 
     private var searchJob: Job? = null
+
+    init {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            isUserHasPermissionsForMainScreen.value = isUserHasPermissionsForMainScreen.value.copy(isUserHasPermissionToAccessAllFiles = Environment.isExternalStorageManager())
+        }
+    }
 
     fun onEvent(contentResolver: ContentResolver, mainEvent: MainEvent) {
         when(mainEvent) {
             is MainEvent.Initial -> {
+                initial(mainEvent.permissionToAccessAllFiles, mainEvent.permissionToReadContacts)
+            }
+            is MainEvent.UpdateIsUserHasPermissionToAccessAllFiles -> {
+                updateIsUserHasPermissionToAccessAllFiles(mainEvent.isUserHasPermissionToAccessAllFiles)
+            }
+            is MainEvent.UpdateIsUserHasPermissionToReadContacts -> {
+                updateIsUserHasPermissionToReadContacts(mainEvent.isUserHasPermissionToReadContacts)
+            }
+            MainEvent.GetAllContacts -> {
                 getAllContacts(contentResolver)
+            }
+            MainEvent.ClearSearchQuery -> {
+                clearSearchQuery()
             }
             is MainEvent.SearchContact -> {
                 searchContact(contentResolver, mainEvent.searchQuery)
@@ -47,53 +73,81 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
             is MainEvent.UpdateSearchBarState -> {
                 updateSearchBarState(mainEvent.isShouldShow)
             }
-            is MainEvent.ClearSearchQuery -> {
-                clearSearchQuery()
-            }
         }
+    }
+
+    private fun initial(isUserHasPermissionToAccessAllFiles: Boolean, isUserHasPermissionToReadContacts: Boolean) {
+        isUserHasPermissionsForMainScreen.value = isUserHasPermissionsForMainScreen.value.copy(
+            isUserHasPermissionToAccessAllFiles = isUserHasPermissionToAccessAllFiles,
+            isUserHasPermissionToReadContacts = isUserHasPermissionToReadContacts
+        )
+    }
+
+    private fun updateIsUserHasPermissionToAccessAllFiles(isUserHasPermissionToAccessAllFiles: Boolean) {
+        isUserHasPermissionsForMainScreen.value = isUserHasPermissionsForMainScreen.value.copy(isUserHasPermissionToAccessAllFiles = isUserHasPermissionToAccessAllFiles)
+    }
+
+    private fun updateIsUserHasPermissionToReadContacts(isUserHasPermissionToReadContacts: Boolean) {
+        isUserHasPermissionsForMainScreen.value = isUserHasPermissionsForMainScreen.value.copy(isUserHasPermissionToReadContacts = isUserHasPermissionToReadContacts)
     }
 
     private fun getAllContacts(contentResolver: ContentResolver) {
-        viewModelScope.launch {
-            _contactsState.value = contactsState.value.copy(isLoading = true)
-            main.getAllContacts(contentResolver).collect { contacts ->
-                if (contacts.isEmpty()) _contactsState.value = contactsState.value.copy(isLoading = false, errorMessage = emptyContactsErrorMessage, contacts = emptyList())
-                else _contactsState.value = contactsState.value.copy(isLoading = false, errorMessage = "", contacts = contacts)
+        contactsJob?.cancel()
+        contactsJob = main.getAllContacts(contentResolver).onEach { result ->
+            when (result) {
+                is Resources.Success -> {
+                    contactsState.value = contactsState.value.copy(isLoading = false, errorMessage = "", contacts = result.data ?: emptyList())
+                }
+                is Resources.Error -> {
+                    contactsState.value = contactsState.value.copy(isLoading = false, errorMessage = result.errorMessage ?: "", contacts = emptyList())
+                }
+                is Resources.Loading -> {
+                    contactsState.value = contactsState.value.copy(isLoading = true, errorMessage = "", contacts = emptyList())
+                }
             }
-        }
+        }.launchIn(viewModelScope)
     }
 
     private fun searchContact(contentResolver: ContentResolver, searchQuery: String) {
+        contactsSearchState.value = contactsSearchState.value.copy(searchQuery = searchQuery)
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
-            _contactsSearchState.value = contactsSearchState.value.copy(isLoading = true, contacts = emptyList())
             delay(searchDelay)
-            main.searchContacts(contentResolver, searchQuery).collect { searchContacts ->
-                if (searchContacts.isEmpty()) _contactsSearchState.value = contactsSearchState.value.copy(isLoading = false, searchQuery = searchQuery, errorMessage = contactsNotFound)
-                else _contactsSearchState.value = contactsSearchState.value.copy(isLoading = false, errorMessage = "", searchQuery = searchQuery, contacts = searchContacts)
+            main.searchContacts(contentResolver, searchQuery).collect { searchResult ->
+                when (searchResult) {
+                    is Resources.Success -> {
+                        contactsSearchState.value = contactsSearchState.value.copy(isLoading = false, errorMessage = "", contacts = searchResult.data ?: emptyList())
+                    }
+                    is Resources.Error -> {
+                        contactsSearchState.value = contactsSearchState.value.copy(isLoading = false, errorMessage = searchResult.errorMessage ?: "", contacts = emptyList())
+                    }
+                    is Resources.Loading -> {
+                        contactsSearchState.value = contactsSearchState.value.copy(isLoading = true, errorMessage = "", contacts = emptyList())
+                    }
+                }
             }
         }
     }
 
     private fun updateSearchBarState(searchBarState: Boolean) {
-        _contactsSearchState.value = contactsSearchState.value.copy(isSearchBarActive = searchBarState)
+        contactsSearchState.value = contactsSearchState.value.copy(isSearchBarActive = searchBarState)
     }
 
     private fun clearSearchQuery() {
-        _contactsSearchState.value = _contactsSearchState.value.copy(searchQuery = "")
+        contactsSearchState.value = contactsSearchState.value.copy(searchQuery = "")
     }
 
     private fun onGeneralContactClick(contactInfo: ContactInfo) {
         viewModelScope.launch {
             val contactId = main.getContactId(contactInfo)
-            _contactsState.value = contactsState.value.copy(contactId = contactId)
+            contactsState.value = contactsState.value.copy(contactId = contactId)
         }
     }
 
     private fun onSearchContactClick(contactInfo: ContactInfo) {
         viewModelScope.launch {
             val contactId = main.getContactId(contactInfo)
-            _contactsSearchState.value = _contactsSearchState.value.copy(contactId = contactId)
+            contactsSearchState.value = contactsSearchState.value.copy(contactId = contactId)
         }
     }
 }

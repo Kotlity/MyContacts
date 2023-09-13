@@ -25,6 +25,8 @@ object Constants {
 
     const val dataStoreName = "dataStore"
     private const val hasUserAlreadyClickedOnStartButtonName = "hasUserAlreadyClickedOnStartButton"
+    const val onDismissButtonClicked = "You have denied permission to access all files.\nPlease restart the application and accept this permission"
+    const val dismissSnackbarActionLabel = "Understood..."
     const val emptyContactsErrorMessage = "Nothing to show..."
     const val contactsNotFound = "Sorry, but there are no such contacts"
 
@@ -40,10 +42,10 @@ object Constants {
 
     val projection = arrayOf(
         contactIdColumn,
-        contactPhotoColumn,
-        contactFirstNameColumn,
-        contactLastNameColumn,
-        contactPhoneNumberColumn,
+//        contactPhotoColumn,
+//        contactFirstNameColumn,
+//        contactLastNameColumn,
+//        contactPhoneNumberColumn,
         contactAddedTimeStampColumn
     )
 }

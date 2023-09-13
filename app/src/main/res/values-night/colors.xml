@@ -5,4 +5,6 @@
     <color name="cardPager">#DF8554</color>
     <color name="pager">#131311</color>
     <color name="pagerButton">#3C43C6</color>
+    <color name="confirmButton">#4BFF69</color>
+    <color name="dismissButton">#F45454</color>
 </resources>

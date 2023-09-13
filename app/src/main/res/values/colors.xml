@@ -12,4 +12,6 @@
     <color name="pager">#CDDC39</color>
     <color name="cardPager">#52E3E3</color>
     <color name="pagerButton">#7D35D5</color>
+    <color name="confirmButton">#4BFF69</color>
+    <color name="dismissButton">#F45454</color>
 </resources>

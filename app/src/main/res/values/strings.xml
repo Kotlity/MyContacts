@@ -8,4 +8,8 @@
     <string name="pagerDescription3">You have the ability to add new contacts, as well as communication with existing ones: you can edit and delete them.</string>
     <string name="pagerButtonTitle">Let\'s start</string>
     <string name="searchBarPlaceholder">Search for contacts by first(last)name/phone number</string>
+    <string name="permissionToAllFilesAlertDialogTitle">Permission to all files</string>
+    <string name="permissionToAllFilesAlertDialogText">To use the application you need to accept this permission</string>
+    <string name="permissionToAllFilesAlertDialogConfirmButton">Confirm</string>
+    <string name="permissionToAllFilesAlertDialogDismissButton">Dismiss</string>
 </resources>

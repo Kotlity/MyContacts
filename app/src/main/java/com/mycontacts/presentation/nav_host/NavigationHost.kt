@@ -18,7 +18,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.mycontacts.presentation.general_content_screen.GeneralContentScreen
-import com.mycontacts.presentation.main.events.MainEvent
 import com.mycontacts.presentation.main.screen.MainScreen
 import com.mycontacts.presentation.main.viewmodels.MainViewModel
 import com.mycontacts.presentation.pager.screen.PagerScreen
@@ -47,13 +46,14 @@ fun NavigationHost(
             }
             composable(ScreenRoutes.Main.route) {
                 val mainViewModel: MainViewModel = hiltViewModel()
+                val isUserHasPermissionsForMainScreen by mainViewModel.isUserHasPermissionsForMainScreen.collectAsStateWithLifecycle()
                 val contactsState by mainViewModel.contactsState.collectAsStateWithLifecycle()
                 val contactsSearchState by mainViewModel.contactsSearchState.collectAsStateWithLifecycle()
                 val context = LocalContext.current
                 val contentResolver = context.contentResolver
-                mainViewModel.onEvent(contentResolver = contentResolver, MainEvent.Initial)
 
                 MainScreen(
+                    isUserHasPermissionsForMainScreen = isUserHasPermissionsForMainScreen,
                     contactsState = contactsState,
                     contactsSearchState = contactsSearchState,
                     event = { mainEvent ->
