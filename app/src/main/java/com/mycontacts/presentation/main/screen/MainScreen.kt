@@ -105,24 +105,24 @@ fun MainScreen(
                     onUpdateSearchBarEvent = { event(MainEvent.UpdateSearchBarState(it)) },
                     onClearSearchQueryEvent = { event(MainEvent.ClearSearchQuery) }
                 ) {
-                    if (contactsSearchState.isLoading) {
-                        CustomProgressBar(modifier = Modifier.fillMaxSize())
-                    }
-                    if (contactsSearchState.contacts.isNotEmpty()) {
-                        ContactList(
-                            modifier = Modifier.fillMaxSize(),
-                            contacts = contactsState.contacts,
-                            onContactClick = {
-                                event(MainEvent.OnSearchContactClick(it))
-                            }
-                        )
-                    } else {
-                        EmptyContacts(
-                            modifier = Modifier.fillMaxSize(),
-                            message = contactsSearchState.errorMessage!!,
-                            imagePainter = painterResource(id = R.drawable.icon_not_found)
-                        )
-                    }
+//                    if (contactsSearchState.isLoading) {
+//                        CustomProgressBar(modifier = Modifier.fillMaxSize())
+//                    }
+//                    if (contactsSearchState.contacts.isNotEmpty()) {
+//                        ContactList(
+//                            modifier = Modifier.fillMaxSize(),
+//                            contacts = contactsState.contacts,
+//                            onContactClick = {
+//                                event(MainEvent.OnSearchContactClick(it))
+//                            }
+//                        )
+//                    } else {
+//                        EmptyContacts(
+//                            modifier = Modifier.fillMaxSize(),
+//                            message = contactsSearchState.errorMessage!!,
+//                            imagePainter = painterResource(id = R.drawable.icon_not_found)
+//                        )
+//                    }
                 }
                 if (contactsState.isLoading) {
                     CustomProgressBar(

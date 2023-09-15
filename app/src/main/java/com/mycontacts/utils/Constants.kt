@@ -23,29 +23,14 @@ object Constants {
     val _17sp = 17.sp
     val _15sp = 15.sp
 
+    const val myTag = "MyTag"
     const val dataStoreName = "dataStore"
     private const val hasUserAlreadyClickedOnStartButtonName = "hasUserAlreadyClickedOnStartButton"
     const val onDismissButtonClicked = "You have denied permission to access all files.\nPlease restart the application and accept this permission"
     const val dismissSnackbarActionLabel = "Understood..."
     const val emptyContactsErrorMessage = "Nothing to show..."
     const val contactsNotFound = "Sorry, but there are no such contacts"
+    const val photoBitmapError = "Something went wrong while retrieving photo bitmap"
 
     val hasUserAlreadyClickedOnStartButton = booleanPreferencesKey(hasUserAlreadyClickedOnStartButtonName)
-
-    const val contactIdColumn = ContactsContract.Contacts._ID
-    const val contactPhotoColumn = ContactsContract.CommonDataKinds.Photo.PHOTO
-    const val contactFirstNameColumn = ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME
-    const val contactLastNameColumn = ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME
-    const val contactPhoneNumberColumn = ContactsContract.CommonDataKinds.Phone.NUMBER
-    const val contactAddedTimeStampColumn = ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP
-    const val orderByAdding = "$contactAddedTimeStampColumn DESC"
-
-    val projection = arrayOf(
-        contactIdColumn,
-//        contactPhotoColumn,
-//        contactFirstNameColumn,
-//        contactLastNameColumn,
-//        contactPhoneNumberColumn,
-        contactAddedTimeStampColumn
-    )
 }
