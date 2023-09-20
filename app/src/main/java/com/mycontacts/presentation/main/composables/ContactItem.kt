@@ -31,6 +31,7 @@ import com.mycontacts.utils.Constants._15sp
 import com.mycontacts.utils.Constants._17sp
 import com.mycontacts.utils.Constants._18sp
 import com.mycontacts.utils.Constants._20sp
+import com.mycontacts.utils.convertTimestamp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,7 +116,7 @@ fun ContactItem(
                 fontSize = _15sp
             )
             Text(
-                text = contactInfo.timeStamp.toString(),
+                text = convertTimestamp(contactInfo.timeStamp),
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontSize = _18sp,
                     fontWeight = FontWeight.W500,

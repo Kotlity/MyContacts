@@ -32,5 +32,7 @@ object Constants {
     const val contactsNotFound = "Sorry, but there are no such contacts"
     const val photoBitmapError = "Something went wrong while retrieving photo bitmap"
 
+    const val datePattern = "dd:MM:yyyy HH:mm:ss"
+
     val hasUserAlreadyClickedOnStartButton = booleanPreferencesKey(hasUserAlreadyClickedOnStartButtonName)
 }

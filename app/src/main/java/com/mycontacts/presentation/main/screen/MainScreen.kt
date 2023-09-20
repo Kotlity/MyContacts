@@ -8,6 +8,7 @@ import android.os.Environment
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -124,7 +125,7 @@ fun MainScreen(
 //                        )
 //                    }
                 }
-                if (contactsState.isLoading) {
+                AnimatedVisibility(visible = contactsState.isLoading) {
                     CustomProgressBar(
                         modifier = Modifier
                             .fillMaxWidth()
