@@ -31,20 +31,21 @@ import com.mycontacts.presentation.main.composables.CustomProgressBar
 import com.mycontacts.presentation.main.composables.CustomSearchBar
 import com.mycontacts.presentation.main.composables.EmptyContacts
 import com.mycontacts.presentation.main.composables.PermissionToAllFilesAlertDialog
-import com.mycontacts.presentation.main.states.ContactsSearchState
-import com.mycontacts.presentation.main.states.ContactsState
-import com.mycontacts.presentation.main.states.PermissionsForMainScreenState
+import com.mycontacts.presentation.main.viewmodels.MainViewModel
+import com.mycontacts.utils.Constants.contactsNotFound
 import com.mycontacts.utils.Constants.dismissSnackbarActionLabel
 import com.mycontacts.utils.Constants.onDismissButtonClicked
 import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreen(
-    isUserHasPermissionsForMainScreen: PermissionsForMainScreenState,
-    contactsState: ContactsState,
-    contactsSearchState: ContactsSearchState,
+    mainViewModel: MainViewModel,
     event: (MainEvent) -> Unit
 ) {
+
+    val isUserHasPermissionsForMainScreen = mainViewModel.isUserHasPermissionsForMainScreen
+    val contactsState = mainViewModel.contactsState
+    val contactsSearchState = mainViewModel.contactsSearchState
 
     val context = LocalContext.current
 
@@ -106,24 +107,25 @@ fun MainScreen(
                     onUpdateSearchBarEvent = { event(MainEvent.UpdateSearchBarState(it)) },
                     onClearSearchQueryEvent = { event(MainEvent.ClearSearchQuery) }
                 ) {
-//                    if (contactsSearchState.isLoading) {
-//                        CustomProgressBar(modifier = Modifier.fillMaxSize())
-//                    }
-//                    if (contactsSearchState.contacts.isNotEmpty()) {
-//                        ContactList(
-//                            modifier = Modifier.fillMaxSize(),
-//                            contacts = contactsState.contacts,
-//                            onContactClick = {
-//                                event(MainEvent.OnSearchContactClick(it))
-//                            }
-//                        )
-//                    } else {
-//                        EmptyContacts(
-//                            modifier = Modifier.fillMaxSize(),
-//                            message = contactsSearchState.errorMessage!!,
-//                            imagePainter = painterResource(id = R.drawable.icon_not_found)
-//                        )
-//                    }
+                    if (contactsSearchState.isLoading) {
+                        CustomProgressBar(modifier = Modifier.fillMaxSize())
+                    }
+                    if (contactsSearchState.contacts.isNotEmpty()) {
+                        ContactList(
+                            modifier = Modifier.fillMaxSize(),
+                            contacts = contactsSearchState.contacts,
+                            onContactClick = {
+                                event(MainEvent.OnSearchContactClick(it))
+                            }
+                        )
+                    }
+                    if (contactsSearchState.contacts.isEmpty() && !contactsSearchState.isLoading) {
+                        EmptyContacts(
+                            modifier = Modifier.fillMaxSize(),
+                            message = contactsSearchState.errorMessage ?: contactsNotFound,
+                            imagePainter = painterResource(id = R.drawable.icon_not_found)
+                        )
+                    }
                 }
                 AnimatedVisibility(visible = contactsState.isLoading) {
                     CustomProgressBar(
@@ -143,7 +145,7 @@ fun MainScreen(
                         }
                     )
                 }
-                if (contactsState.contacts.isEmpty()) {
+                if (contactsState.contacts.isEmpty() && !contactsState.isLoading) {
                     EmptyContacts(
                         modifier = Modifier
                             .fillMaxWidth()

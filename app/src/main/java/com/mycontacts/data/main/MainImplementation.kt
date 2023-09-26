@@ -5,14 +5,12 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.ContactsContract
-import android.util.Log
 import androidx.core.database.getBlobOrNull
 import androidx.core.database.getStringOrNull
 import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.domain.main.Main
+import com.mycontacts.utils.Constants.contactsNotFound
 import com.mycontacts.utils.Constants.emptyContactsErrorMessage
-import com.mycontacts.utils.Constants.myTag
-import com.mycontacts.utils.Constants.photoBitmapError
 import com.mycontacts.utils.Resources
 import com.mycontacts.utils.getColumnIndex
 import com.mycontacts.utils.retrieveBitmap
@@ -34,10 +32,12 @@ class MainImplementation: Main {
 
     override fun searchContacts(contentResolver: ContentResolver, searchQuery: String): Flow<Resources<List<ContactInfo>>> {
         return flow {
-
             emit(Resources.Loading())
 
+            val searchResult = retrieveContacts(contentResolver, RetrieveContactsMethod.SEARCH, searchQuery)
 
+            if (searchResult.isEmpty()) emit(Resources.Error(contactsNotFound))
+            else emit(Resources.Success(searchResult))
         }
     }
 
@@ -92,14 +92,14 @@ class MainImplementation: Main {
                             val photoUri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, id)
                             val photoInputStream = ContactsContract.Contacts.openContactPhotoInputStream(contentResolver, photoUri)
                             photo = BitmapFactory.decodeStream(photoInputStream)
-                        } catch (_: Exception) { Log.d(myTag, photoBitmapError) }
+                        } catch (_: Exception) { }
 
                         generalContactInfoList.add(ContactInfo(id.toLong(), photo, firstName, lastName, phoneNumber, timeStamp))
                     }
                 }
                 generalContactInfoList.sortedByDescending { contactInfo -> contactInfo.timeStamp }
             }
-            RetrieveContactsMethod.FIRST_LAST_NAME -> {
+            RetrieveContactsMethod.SEARCH -> {
                 val searchContactInfoList = mutableListOf<ContactInfo>()
 
                 contentResolver.query(
@@ -107,10 +107,8 @@ class MainImplementation: Main {
                     null,
                     ContactsContract.Data.MIMETYPE + " = ? AND (" +
                     ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME + " LIKE ? OR " +
-                    ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME + " LIKE ?) OR " +
-                    ContactsContract.Data.MIMETYPE + " = ? AND " +
-                    ContactsContract.CommonDataKinds.Phone.NUMBER + " LIKE ?",
-                    arrayOf(ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE, "%$searchQuery%", "%$searchQuery%", ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE, "%$searchQuery%"),
+                    ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME + " LIKE ?)",
+                    arrayOf(ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE, "%$searchQuery%", "%$searchQuery%"),
                     null
                 )?.use { searchQueryCursor ->
                     while (searchQueryCursor.moveToNext()) {
@@ -127,7 +125,9 @@ class MainImplementation: Main {
                             arrayOf(id),
                             null
                         )?.use { phoneNumberCursor ->
-                            phoneNumber = phoneNumberCursor.getString(getColumnIndex(phoneNumberCursor, ContactsContract.CommonDataKinds.Phone.NUMBER))
+                            if (phoneNumberCursor.moveToFirst()) {
+                                phoneNumber = phoneNumberCursor.getString(getColumnIndex(phoneNumberCursor, ContactsContract.CommonDataKinds.Phone.NUMBER))
+                            }
                         }
 
                         var photo: Bitmap? = null
@@ -138,15 +138,18 @@ class MainImplementation: Main {
                             arrayOf(ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE, id),
                             null
                         )?.use { photoCursor ->
-                            val photoByteArray = photoCursor.getBlobOrNull(getColumnIndex(photoCursor, ContactsContract.CommonDataKinds.Photo.PHOTO))
-                            photo = retrieveBitmap(photoByteArray)
+                            if (photoCursor.moveToFirst()) {
+                                val photoByteArray = photoCursor.getBlobOrNull(getColumnIndex(photoCursor, ContactsContract.CommonDataKinds.Photo.PHOTO))
+                                photo = retrieveBitmap(photoByteArray)
+                            }
                         }
 
                         val searchContactInfo = ContactInfo(id.toLong(), photo, firstName, lastName, phoneNumber, timeStamp)
                         searchContactInfoList.add(searchContactInfo)
                     }
                 }
-                searchContactInfoList.sortedBy { contactInfo -> contactInfo.firstName }
+                return if (searchContactInfoList.isNotEmpty()) searchContactInfoList.sortedBy { contactInfo -> contactInfo.firstName }
+                else searchContactInfoList
             }
         }
     }
@@ -156,5 +159,5 @@ class MainImplementation: Main {
 }
 
 private enum class RetrieveContactsMethod {
-    GENERAL, FIRST_LAST_NAME
+    GENERAL, SEARCH
 }

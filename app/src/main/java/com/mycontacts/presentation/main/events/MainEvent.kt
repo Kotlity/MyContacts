@@ -3,7 +3,7 @@ package com.mycontacts.presentation.main.events
 import com.mycontacts.data.contacts.ContactInfo
 
 sealed class MainEvent {
-    data class Initial(val permissionToAccessAllFiles: Boolean, val permissionToReadContacts: Boolean): MainEvent()
+    data class OnMainViewModelInitializing(val permissionToAccessAllFiles: Boolean, val permissionToReadContacts: Boolean): MainEvent()
     data class UpdateIsUserHasPermissionToAccessAllFiles(val isUserHasPermissionToAccessAllFiles: Boolean): MainEvent()
     data class UpdateIsUserHasPermissionToReadContacts(val isUserHasPermissionToReadContacts: Boolean): MainEvent()
     object GetAllContacts: MainEvent()
