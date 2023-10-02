@@ -1,14 +1,11 @@
 package com.mycontacts.presentation.main.viewmodels
 
 import android.content.ContentResolver
-import android.os.Build
-import android.os.Environment
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.domain.main.Main
 import com.mycontacts.presentation.main.events.MainEvent
 import com.mycontacts.presentation.main.states.ContactsSearchState
@@ -20,7 +17,6 @@ import com.mycontacts.utils.Resources
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -62,12 +58,6 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
             is MainEvent.SearchContact -> {
                 searchContact(contentResolver, mainEvent.searchQuery)
             }
-            is MainEvent.OnGeneralContactClick -> {
-                onGeneralContactClick(mainEvent.contact)
-            }
-            is MainEvent.OnSearchContactClick -> {
-                onSearchContactClick(mainEvent.contact)
-            }
             is MainEvent.UpdateSearchBarState -> {
                 updateSearchBarState(mainEvent.isShouldShow)
             }
@@ -92,15 +82,17 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
     private fun getAllContacts(contentResolver: ContentResolver) {
         contactsJob?.cancel()
         contactsJob = main.getAllContacts(contentResolver).onEach { result ->
-            when (result) {
+            contactsState = when (result) {
                 is Resources.Success -> {
-                    contactsState = contactsState.copy(isLoading = false, errorMessage = "", contacts = result.data ?: emptyList())
+                    contactsState.copy(isLoading = false, errorMessage = "", contacts = result.data ?: emptyList())
                 }
+
                 is Resources.Error -> {
-                    contactsState = contactsState.copy(isLoading = false, errorMessage = result.errorMessage ?: "", contacts = emptyList())
+                    contactsState.copy(isLoading = false, errorMessage = result.errorMessage ?: "", contacts = emptyList())
                 }
+
                 is Resources.Loading -> {
-                    contactsState = contactsState.copy(isLoading = true, errorMessage = "", contacts = emptyList())
+                    contactsState.copy(isLoading = true, errorMessage = "", contacts = emptyList())
                 }
             }
         }.launchIn(viewModelScope)
@@ -135,19 +127,5 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
 
     private fun clearSearchQuery() {
         contactsSearchState = contactsSearchState.copy(searchQuery = "", contacts = emptyList(), errorMessage = contactsNotFound)
-    }
-
-    private fun onGeneralContactClick(contactInfo: ContactInfo) {
-        viewModelScope.launch {
-            val contactId = main.getContactId(contactInfo)
-            contactsState = contactsState.copy(contactId = contactId)
-        }
-    }
-
-    private fun onSearchContactClick(contactInfo: ContactInfo) {
-        viewModelScope.launch {
-            val contactId = main.getContactId(contactInfo)
-            contactsSearchState = contactsSearchState.copy(contactId = contactId)
-        }
     }
 }

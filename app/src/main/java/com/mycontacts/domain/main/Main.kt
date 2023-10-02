@@ -11,5 +11,4 @@ interface Main {
 
     fun searchContacts(contentResolver: ContentResolver, searchQuery: String): Flow<Resources<List<ContactInfo>>>
 
-    suspend fun getContactId(contactInfo: ContactInfo): Long
 }

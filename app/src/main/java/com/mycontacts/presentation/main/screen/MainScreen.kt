@@ -24,7 +24,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.navigation.NavHostController
 import com.mycontacts.R
+import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.presentation.main.composables.ContactList
 import com.mycontacts.presentation.main.events.MainEvent
 import com.mycontacts.presentation.main.composables.CustomProgressBar
@@ -40,7 +42,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun MainScreen(
     mainViewModel: MainViewModel,
-    event: (MainEvent) -> Unit
+    event: (MainEvent) -> Unit,
+    onContactInfoClicked: (ContactInfo) -> Unit
 ) {
 
     val isUserHasPermissionsForMainScreen = mainViewModel.isUserHasPermissionsForMainScreen
@@ -107,15 +110,15 @@ fun MainScreen(
                     onUpdateSearchBarEvent = { event(MainEvent.UpdateSearchBarState(it)) },
                     onClearSearchQueryEvent = { event(MainEvent.ClearSearchQuery) }
                 ) {
-                    if (contactsSearchState.isLoading) {
+                    AnimatedVisibility(visible = contactsSearchState.isLoading) {
                         CustomProgressBar(modifier = Modifier.fillMaxSize())
                     }
                     if (contactsSearchState.contacts.isNotEmpty()) {
                         ContactList(
                             modifier = Modifier.fillMaxSize(),
                             contacts = contactsSearchState.contacts,
-                            onContactClick = {
-                                event(MainEvent.OnSearchContactClick(it))
+                            onContactClick = { contactInfo ->
+                                onContactInfoClicked(contactInfo)
                             }
                         )
                     }
@@ -140,8 +143,8 @@ fun MainScreen(
                             .fillMaxWidth()
                             .weight(1f),
                         contacts = contactsState.contacts,
-                        onContactClick = {
-                            event(MainEvent.OnGeneralContactClick(it))
+                        onContactClick = { contactInfo ->
+                            onContactInfoClicked(contactInfo)
                         }
                     )
                 }

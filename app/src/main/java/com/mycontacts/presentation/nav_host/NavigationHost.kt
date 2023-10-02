@@ -48,7 +48,7 @@ fun NavigationHost(
                 val pagerViewModel: PagerViewModel = hiltViewModel()
                 PagerScreen(onEvent = pagerViewModel::onEvent)
             }
-            composable(ScreenRoutes.Main.route) {
+            composable(ScreenRoutes.Main.route) { backStackEntry ->
                 val context = LocalContext.current
                 val contentResolver = context.contentResolver
                 val mainViewModel: MainViewModel = hiltViewModel()
@@ -63,6 +63,9 @@ fun NavigationHost(
                     mainViewModel,
                     event = { mainEvent ->
                         mainViewModel.onEvent(contentResolver = contentResolver, mainEvent)
+                    },
+                    onContactInfoClicked = { contactInfo ->
+//                        backStackEntry.savedStateHandle.set()
                     }
                 )
             }

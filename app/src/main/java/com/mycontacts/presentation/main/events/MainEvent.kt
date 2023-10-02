@@ -10,6 +10,4 @@ sealed class MainEvent {
     data class SearchContact(val searchQuery: String): MainEvent()
     data class UpdateSearchBarState(val isShouldShow: Boolean): MainEvent()
     object ClearSearchQuery: MainEvent()
-    data class OnGeneralContactClick(val contact: ContactInfo): MainEvent()
-    data class OnSearchContactClick(val contact: ContactInfo): MainEvent()
 }

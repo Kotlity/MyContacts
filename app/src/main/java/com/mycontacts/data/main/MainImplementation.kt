@@ -1,19 +1,19 @@
 package com.mycontacts.data.main
 
 import android.content.ContentResolver
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.net.Uri
 import android.provider.ContactsContract
-import androidx.core.database.getBlobOrNull
 import androidx.core.database.getStringOrNull
 import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.domain.main.Main
 import com.mycontacts.utils.Constants.contactsNotFound
 import com.mycontacts.utils.Constants.emptyContactsErrorMessage
+import com.mycontacts.utils.Constants.searchDelay
+import com.mycontacts.utils.ContactOrder
+import com.mycontacts.utils.ContactOrderType
 import com.mycontacts.utils.Resources
 import com.mycontacts.utils.getColumnIndex
 import com.mycontacts.utils.retrieveBitmap
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -23,7 +23,7 @@ class MainImplementation: Main {
         return flow {
             emit(Resources.Loading())
 
-            val result = retrieveContacts(contentResolver, RetrieveContactsMethod.GENERAL)
+            val result = retrieveContacts(contentResolver, RetrieveContactsMethod.GENERAL, ContactOrder.TimeStamp(ContactOrderType.Descending))
 
             if (result.isEmpty()) emit(Resources.Error(emptyContactsErrorMessage))
             else emit(Resources.Success(result))
@@ -34,18 +34,21 @@ class MainImplementation: Main {
         return flow {
             emit(Resources.Loading())
 
-            val searchResult = retrieveContacts(contentResolver, RetrieveContactsMethod.SEARCH, searchQuery)
+            delay(searchDelay)
+
+            val searchResult = retrieveContacts(contentResolver, RetrieveContactsMethod.SEARCH, ContactOrder.FirstName(ContactOrderType.Descending), searchQuery)
 
             if (searchResult.isEmpty()) emit(Resources.Error(contactsNotFound))
             else emit(Resources.Success(searchResult))
         }
     }
 
-    private fun retrieveContacts(contentResolver: ContentResolver, retrieveContactsMethod: RetrieveContactsMethod, searchQuery: String? = null): List<ContactInfo> {
+    private fun retrieveContacts(contentResolver: ContentResolver, retrieveContactsMethod: RetrieveContactsMethod, contactOrder: ContactOrder, searchQuery: String? = null): List<ContactInfo> {
 
         return when(retrieveContactsMethod) {
             RetrieveContactsMethod.GENERAL -> {
                 val generalContactInfoList = mutableListOf<ContactInfo>()
+
                 contentResolver.query(
                     ContactsContract.Contacts.CONTENT_URI,
                     arrayOf(ContactsContract.Contacts._ID,
@@ -85,43 +88,53 @@ class MainImplementation: Main {
                                 lastName = firstLastNameCursor.getStringOrNull(getColumnIndex(firstLastNameCursor, ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME))
                             }
                         }
+                        val photoBitmap = retrieveBitmap(id, contentResolver)
 
-                        var photo: Bitmap? = null
-
-                        try {
-                            val photoUri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, id)
-                            val photoInputStream = ContactsContract.Contacts.openContactPhotoInputStream(contentResolver, photoUri)
-                            photo = BitmapFactory.decodeStream(photoInputStream)
-                        } catch (_: Exception) { }
-
-                        generalContactInfoList.add(ContactInfo(id.toLong(), photo, firstName, lastName, phoneNumber, timeStamp))
+                        generalContactInfoList.add(ContactInfo(id.toLong(), photoBitmap, firstName, lastName, phoneNumber, timeStamp))
                     }
                 }
-                generalContactInfoList.sortedByDescending { contactInfo -> contactInfo.timeStamp }
+                if (generalContactInfoList.isNotEmpty()) {
+                    when (contactOrder.contactOrderType) {
+                        is ContactOrderType.Ascending -> {
+                            when (contactOrder) {
+                                is ContactOrder.FirstName -> generalContactInfoList.sortBy { it.firstName.lowercase() }
+                                is ContactOrder.LastName -> generalContactInfoList.sortWith(compareBy { it.lastName })
+                                is ContactOrder.TimeStamp -> generalContactInfoList.sortBy { it.timeStamp }
+                            }
+                        }
+                        is ContactOrderType.Descending -> {
+                            when (contactOrder) {
+                                is ContactOrder.FirstName -> generalContactInfoList.sortByDescending { it.firstName.lowercase() }
+                                is ContactOrder.LastName -> generalContactInfoList.sortWith(compareByDescending { it.lastName })
+                                is ContactOrder.TimeStamp -> generalContactInfoList.sortByDescending { it.timeStamp }
+                            }
+                        }
+                    }
+                }
+                generalContactInfoList
             }
             RetrieveContactsMethod.SEARCH -> {
                 val searchContactInfoList = mutableListOf<ContactInfo>()
 
                 contentResolver.query(
-                    ContactsContract.Data.CONTENT_URI,
+                    ContactsContract.Contacts.CONTENT_URI,
                     null,
-                    ContactsContract.Data.MIMETYPE + " = ? AND (" +
-                    ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME + " LIKE ? OR " +
-                    ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME + " LIKE ?)",
-                    arrayOf(ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE, "%$searchQuery%", "%$searchQuery%"),
+                    ContactsContract.Contacts.DISPLAY_NAME + " LIKE ?",
+                    arrayOf("%$searchQuery%"),
                     null
-                )?.use { searchQueryCursor ->
-                    while (searchQueryCursor.moveToNext()) {
-                        val id = searchQueryCursor.getString(getColumnIndex(searchQueryCursor, ContactsContract.Data._ID))
-                        val firstName = searchQueryCursor.getString(getColumnIndex(searchQueryCursor, ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME))
-                        val lastName = searchQueryCursor.getStringOrNull(getColumnIndex(searchQueryCursor, ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME))
-                        val timeStamp = searchQueryCursor.getLong(getColumnIndex(searchQueryCursor, ContactsContract.Data.CONTACT_LAST_UPDATED_TIMESTAMP))
-
+                )?.use { searchCursor ->
+                    while (searchCursor.moveToNext()) {
+                        val id = searchCursor.getString(getColumnIndex(searchCursor, ContactsContract.Contacts._ID))
+                        val timeStamp = searchCursor.getLong(getColumnIndex(searchCursor, ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP))
+                        val displayName = searchCursor.getString(getColumnIndex(searchCursor, ContactsContract.Contacts.DISPLAY_NAME))
+                        val fullName = displayName.split(" ")
+                        val firstName = fullName[0]
+                        val lastName = if (fullName.size > 1) fullName[1] else ""
                         var phoneNumber = ""
                         contentResolver.query(
                             ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
                             arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
-                            "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?",
+                            ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
                             arrayOf(id),
                             null
                         )?.use { phoneNumberCursor ->
@@ -129,32 +142,18 @@ class MainImplementation: Main {
                                 phoneNumber = phoneNumberCursor.getString(getColumnIndex(phoneNumberCursor, ContactsContract.CommonDataKinds.Phone.NUMBER))
                             }
                         }
+                        val photoBitmap = retrieveBitmap(id, contentResolver)
 
-                        var photo: Bitmap? = null
-                        contentResolver.query(
-                            ContactsContract.Data.CONTENT_URI,
-                            null,
-                            "${ContactsContract.Data.MIMETYPE} = ? AND ${ContactsContract.CommonDataKinds.Photo.CONTACT_ID} = ?",
-                            arrayOf(ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE, id),
-                            null
-                        )?.use { photoCursor ->
-                            if (photoCursor.moveToFirst()) {
-                                val photoByteArray = photoCursor.getBlobOrNull(getColumnIndex(photoCursor, ContactsContract.CommonDataKinds.Photo.PHOTO))
-                                photo = retrieveBitmap(photoByteArray)
-                            }
-                        }
-
-                        val searchContactInfo = ContactInfo(id.toLong(), photo, firstName, lastName, phoneNumber, timeStamp)
-                        searchContactInfoList.add(searchContactInfo)
+                        val searchContact = ContactInfo(id.toLong(), photoBitmap, firstName, lastName, phoneNumber, timeStamp)
+                        searchContactInfoList.add(searchContact)
                     }
                 }
+
                 return if (searchContactInfoList.isNotEmpty()) searchContactInfoList.sortedBy { contactInfo -> contactInfo.firstName }
                 else searchContactInfoList
             }
         }
     }
-
-    override suspend fun getContactId(contactInfo: ContactInfo): Long = contactInfo.id
 
 }
 
