@@ -7,4 +7,8 @@
     <color name="pagerButton">#3C43C6</color>
     <color name="confirmButton">#4BFF69</color>
     <color name="dismissButton">#F45454</color>
+    <color name="radioButtonSelected">#FFFFFF</color>
+    <color name="radioButtonUnselected">#FF0000</color>
+    <color name="contactOrderIconPressed">#C4C93A</color>
+    <color name="contactOrderIconNotPressed">#EC2424</color>
 </resources>

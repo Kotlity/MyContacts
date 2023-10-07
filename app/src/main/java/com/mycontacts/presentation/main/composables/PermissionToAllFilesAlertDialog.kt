@@ -37,17 +37,17 @@ fun PermissionToAllFilesAlertDialog(
         mutableStateOf(true)
     }
     
-    val confirmButtonInteractionSource by remember {
-        mutableStateOf(MutableInteractionSource())
+    val confirmButtonInteractionSource = remember {
+        MutableInteractionSource()
     }
 
-    val dismissButtonInteractionSource by remember {
-        mutableStateOf(MutableInteractionSource())
+    val dismissButtonInteractionSource = remember {
+        MutableInteractionSource()
     }
     
-    val isConfirmButtonPressed = confirmButtonInteractionSource.collectIsPressedAsState().value
+    val isConfirmButtonPressed by confirmButtonInteractionSource.collectIsPressedAsState()
 
-    val isDismissButtonPressed = dismissButtonInteractionSource.collectIsPressedAsState().value
+    val isDismissButtonPressed by dismissButtonInteractionSource.collectIsPressedAsState()
     
     if (isAlertDialogVisible) {
         AlertDialog(

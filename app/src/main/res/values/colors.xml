@@ -14,4 +14,8 @@
     <color name="pagerButton">#7D35D5</color>
     <color name="confirmButton">#4BFF69</color>
     <color name="dismissButton">#F45454</color>
+    <color name="radioButtonSelected">#09EA11</color>
+    <color name="radioButtonUnselected">#000000</color>
+    <color name="contactOrderIconPressed">#33ECEC</color>
+    <color name="contactOrderIconNotPressed">#B86363</color>
 </resources>

@@ -19,11 +19,11 @@ import kotlinx.coroutines.flow.flow
 
 class MainImplementation: Main {
 
-    override fun getAllContacts(contentResolver: ContentResolver): Flow<Resources<List<ContactInfo>>> {
+    override fun getAllContacts(contentResolver: ContentResolver, contactOrder: ContactOrder): Flow<Resources<List<ContactInfo>>> {
         return flow {
             emit(Resources.Loading())
 
-            val result = retrieveContacts(contentResolver, RetrieveContactsMethod.GENERAL, ContactOrder.TimeStamp(ContactOrderType.Descending))
+            val result = retrieveContacts(contentResolver, RetrieveContactsMethod.GENERAL, contactOrder)
 
             if (result.isEmpty()) emit(Resources.Error(emptyContactsErrorMessage))
             else emit(Resources.Success(result))

@@ -24,4 +24,4 @@ fun retrieveBitmap(contactId: String, contentResolver: ContentResolver): Bitmap?
     }
 }
 
-fun convertTimestamp(timeStamp: Long): String = SimpleDateFormat(datePattern, Locale.getDefault()).format(Date(timeStamp))
+fun convertTimestamp(timeStamp: Long): String = SimpleDateFormat(datePattern, Locale.ROOT).format(Date(timeStamp))
