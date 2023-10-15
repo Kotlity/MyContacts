@@ -11,4 +11,5 @@
     <color name="radioButtonUnselected">#FF0000</color>
     <color name="contactOrderIconPressed">#C4C93A</color>
     <color name="contactOrderIconNotPressed">#EC2424</color>
+    <color name="green">#8BC34A</color>
 </resources>
