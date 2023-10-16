@@ -1,12 +1,15 @@
 package com.mycontacts.presentation.main.states
 
 import com.mycontacts.data.contacts.ContactInfo
+import com.mycontacts.utils.ContactOrder
+import com.mycontacts.utils.ContactOrderType
 
 data class ContactsSearchState(
     val isLoading: Boolean = false,
     val searchQuery: String = "",
     val isSearchBarActive: Boolean = false,
     val errorMessage: String? = null,
-    val contactId: Long? = null,
-    val contacts: List<ContactInfo> = emptyList()
+    val contacts: List<ContactInfo> = emptyList(),
+    val isSearchDropdownMenuExpanded: Boolean = false,
+    val searchContactOrder: ContactOrder = ContactOrder.TimeStamp(ContactOrderType.Descending)
 )

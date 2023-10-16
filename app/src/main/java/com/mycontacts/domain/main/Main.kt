@@ -10,6 +10,6 @@ interface Main {
 
     fun getAllContacts(contentResolver: ContentResolver, contactOrder: ContactOrder): Flow<Resources<List<ContactInfo>>>
 
-    fun searchContacts(contentResolver: ContentResolver, searchQuery: String): Flow<Resources<List<ContactInfo>>>
+    fun searchContacts(contentResolver: ContentResolver, searchQuery: String, searchContactOrder: ContactOrder): Flow<Resources<List<ContactInfo>>>
 
 }

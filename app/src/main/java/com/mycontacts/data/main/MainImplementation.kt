@@ -30,13 +30,13 @@ class MainImplementation: Main {
         }
     }
 
-    override fun searchContacts(contentResolver: ContentResolver, searchQuery: String): Flow<Resources<List<ContactInfo>>> {
+    override fun searchContacts(contentResolver: ContentResolver, searchQuery: String, searchContactOrder: ContactOrder): Flow<Resources<List<ContactInfo>>> {
         return flow {
             emit(Resources.Loading())
 
             delay(searchDelay)
 
-            val searchResult = retrieveContacts(contentResolver, RetrieveContactsMethod.SEARCH, ContactOrder.FirstName(ContactOrderType.Descending), searchQuery)
+            val searchResult = retrieveContacts(contentResolver, RetrieveContactsMethod.SEARCH, searchContactOrder, searchQuery)
 
             if (searchResult.isEmpty()) emit(Resources.Error(contactsNotFound))
             else emit(Resources.Success(searchResult))
@@ -47,7 +47,7 @@ class MainImplementation: Main {
 
         return when(retrieveContactsMethod) {
             RetrieveContactsMethod.GENERAL -> {
-                val generalContactInfoList = mutableListOf<ContactInfo>()
+                var generalContactInfoList = mutableListOf<ContactInfo>()
 
                 contentResolver.query(
                     ContactsContract.Contacts.CONTENT_URI,
@@ -94,27 +94,12 @@ class MainImplementation: Main {
                     }
                 }
                 if (generalContactInfoList.isNotEmpty()) {
-                    when (contactOrder.contactOrderType) {
-                        is ContactOrderType.Ascending -> {
-                            when (contactOrder) {
-                                is ContactOrder.FirstName -> generalContactInfoList.sortBy { it.firstName.lowercase() }
-                                is ContactOrder.LastName -> generalContactInfoList.sortWith(compareBy { it.lastName })
-                                is ContactOrder.TimeStamp -> generalContactInfoList.sortBy { it.timeStamp }
-                            }
-                        }
-                        is ContactOrderType.Descending -> {
-                            when (contactOrder) {
-                                is ContactOrder.FirstName -> generalContactInfoList.sortByDescending { it.firstName.lowercase() }
-                                is ContactOrder.LastName -> generalContactInfoList.sortWith(compareByDescending { it.lastName })
-                                is ContactOrder.TimeStamp -> generalContactInfoList.sortByDescending { it.timeStamp }
-                            }
-                        }
-                    }
+                    generalContactInfoList = sortFinalList(generalContactInfoList, contactOrder)
                 }
                 generalContactInfoList
             }
             RetrieveContactsMethod.SEARCH -> {
-                val searchContactInfoList = mutableListOf<ContactInfo>()
+                var searchContactInfoList = mutableListOf<ContactInfo>()
 
                 contentResolver.query(
                     ContactsContract.Contacts.CONTENT_URI,
@@ -149,10 +134,32 @@ class MainImplementation: Main {
                     }
                 }
 
-                return if (searchContactInfoList.isNotEmpty()) searchContactInfoList.sortedBy { contactInfo -> contactInfo.firstName }
-                else searchContactInfoList
+                if (searchContactInfoList.isNotEmpty()) {
+                    searchContactInfoList = sortFinalList(searchContactInfoList, contactOrder)
+                }
+                searchContactInfoList
             }
         }
+    }
+
+    private fun sortFinalList(finalList: MutableList<ContactInfo>, contactOrder: ContactOrder): MutableList<ContactInfo> {
+        when (contactOrder.contactOrderType) {
+            is ContactOrderType.Ascending -> {
+                when (contactOrder) {
+                    is ContactOrder.FirstName -> finalList.sortBy { it.firstName.lowercase() }
+                    is ContactOrder.LastName -> finalList.sortWith(compareBy { it.lastName })
+                    is ContactOrder.TimeStamp -> finalList.sortBy { it.timeStamp }
+                }
+            }
+            is ContactOrderType.Descending -> {
+                when (contactOrder) {
+                    is ContactOrder.FirstName -> finalList.sortByDescending { it.firstName.lowercase() }
+                    is ContactOrder.LastName -> finalList.sortWith(compareByDescending { it.lastName })
+                    is ContactOrder.TimeStamp -> finalList.sortByDescending { it.timeStamp }
+                }
+            }
+        }
+        return finalList
     }
 
 }

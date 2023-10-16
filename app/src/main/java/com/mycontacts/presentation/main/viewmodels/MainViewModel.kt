@@ -13,12 +13,10 @@ import com.mycontacts.presentation.main.states.ContactsSearchState
 import com.mycontacts.presentation.main.states.ContactsState
 import com.mycontacts.presentation.main.states.PermissionsForMainScreenState
 import com.mycontacts.utils.Constants.contactsNotFound
-import com.mycontacts.utils.Constants.searchDelay
 import com.mycontacts.utils.ContactOrder
 import com.mycontacts.utils.Resources
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -59,7 +57,14 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
                 getAllContacts(contentResolver, mainEvent.contactOrder)
             }
             is MainEvent.SearchContact -> {
-                searchContact(contentResolver, mainEvent.searchQuery)
+                searchContact(contentResolver, mainEvent.searchQuery, mainEvent.searchContactOrder)
+            }
+            is MainEvent.UpdateSearchDropdownMenuState -> {
+                updateSearchDropdownMenuState(mainEvent.searchDropdownMenuVisibility)
+            }
+            is MainEvent.OnSearchContactOrderClick -> {
+                if (checkIfTheSameContactOrderClicked(mainEvent.searchContactOrder) || mainEvent.searchQuery.isEmpty()) return
+                onSearchContactOrderClick(contentResolver, mainEvent.searchQuery, mainEvent.searchContactOrder)
             }
             is MainEvent.UpdateSearchBarState -> {
                 updateSearchBarState(mainEvent.isShouldShow)
@@ -107,12 +112,11 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         }.launchIn(viewModelScope)
     }
 
-    private fun searchContact(contentResolver: ContentResolver, searchQuery: String) {
+    private fun searchContact(contentResolver: ContentResolver, searchQuery: String, searchContactOrder: ContactOrder) {
         contactsSearchState = contactsSearchState.copy(searchQuery = searchQuery)
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
-            delay(searchDelay)
-            main.searchContacts(contentResolver, searchQuery).collect { searchResult ->
+            main.searchContacts(contentResolver, searchQuery, searchContactOrder).collect { searchResult ->
                 contactsSearchState = when (searchResult) {
                     is Resources.Success -> {
                         contactsSearchState.copy(isLoading = false, errorMessage = "", contacts = searchResult.data ?: emptyList())
@@ -130,8 +134,17 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         }
     }
 
+    private fun updateSearchDropdownMenuState(searchDropdownMenu: Boolean) {
+        contactsSearchState = contactsSearchState.copy(isSearchDropdownMenuExpanded = searchDropdownMenu)
+    }
+
+    private fun onSearchContactOrderClick(contentResolver: ContentResolver, searchQuery: String, searchContactOrder: ContactOrder) {
+        contactsSearchState = contactsSearchState.copy(searchContactOrder = searchContactOrder)
+        searchContact(contentResolver, searchQuery, searchContactOrder)
+    }
+
     private fun updateSearchBarState(searchBarState: Boolean) {
-        contactsSearchState = ContactsSearchState(isSearchBarActive = searchBarState)
+        contactsSearchState = contactsSearchState.copy(isLoading = false, searchQuery = "", isSearchBarActive = searchBarState, errorMessage = null, contacts = emptyList(), isSearchDropdownMenuExpanded = false, searchContactOrder = contactsSearchState.searchContactOrder)
     }
 
     private fun clearSearchQuery() {

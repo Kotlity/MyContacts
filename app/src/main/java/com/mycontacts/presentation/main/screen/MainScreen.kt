@@ -38,6 +38,7 @@ import com.mycontacts.presentation.main.composables.CustomSearchBar
 import com.mycontacts.presentation.main.composables.EmptyContacts
 import com.mycontacts.presentation.main.composables.PermissionToAllFilesAlertDialog
 import com.mycontacts.presentation.main.composables.RadioButtonsSection
+import com.mycontacts.presentation.main.composables.SearchContactsFilteringSection
 import com.mycontacts.presentation.main.viewmodels.MainViewModel
 import com.mycontacts.utils.Constants.contactsNotFound
 import com.mycontacts.utils.Constants.dismissSnackbarActionLabel
@@ -127,16 +128,27 @@ fun MainScreen(
             ) {
                 CustomSearchBar(
                     contactsSearchState = contactsSearchState,
-                    onQueryChangeEvent = { event(MainEvent.SearchContact(it)) },
+                    onQueryChangeEvent = { event(MainEvent.SearchContact(it, contactsSearchState.searchContactOrder)) },
                     onUpdateSearchBarEvent = { event(MainEvent.UpdateSearchBarState(it)) },
                     onClearSearchQueryEvent = { event(MainEvent.ClearSearchQuery) }
                 ) {
                     AnimatedVisibility(visible = contactsSearchState.isLoading) {
                         CustomProgressBar(modifier = Modifier.fillMaxSize())
                     }
+                    SearchContactsFilteringSection(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = dimensionResource(id = R.dimen._5dp)),
+                        isExpanded = contactsSearchState.isSearchDropdownMenuExpanded,
+                        currentSearchContactOrder = contactsSearchState.searchContactOrder,
+                        onSearchContactOrderClick = { event(MainEvent.OnSearchContactOrderClick(contactsSearchState.searchQuery, it)) } ,
+                        onUpdateDropdownMenuVisibility = { event(MainEvent.UpdateSearchDropdownMenuState(it)) }
+                    )
                     if (contactsSearchState.contacts.isNotEmpty()) {
                         ContactSearchList(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
                             contacts = contactsSearchState.contacts,
                             onContactClick = { contactInfo ->
                                 onContactInfoClicked(contactInfo)
@@ -145,7 +157,9 @@ fun MainScreen(
                     }
                     if (contactsSearchState.contacts.isEmpty() && !contactsSearchState.isLoading) {
                         EmptyContacts(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
                             message = contactsSearchState.errorMessage ?: contactsNotFound,
                             imagePainter = painterResource(id = R.drawable.icon_not_found)
                         )

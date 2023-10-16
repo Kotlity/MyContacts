@@ -12,10 +12,11 @@
     <string name="permissionToAllFilesAlertDialogText">To use the application you need to accept this permission</string>
     <string name="permissionToAllFilesAlertDialogConfirmButton">Confirm</string>
     <string name="permissionToAllFilesAlertDialogDismissButton">Dismiss</string>
-    <string name="contactOrderFirstName">Firstname</string>
-    <string name="contactOrderLastName">Lastname</string>
-    <string name="contactOrderTimestamp">Date</string>
+    <string name="contactOrderFirstName">FirstName</string>
+    <string name="contactOrderLastName">LastName</string>
+    <string name="contactOrderTimestamp">TimeStamp</string>
     <string name="contactOrderAscending">Ascending</string>
     <string name="contactOrderDescending">Descending</string>
     <string name="contactOrderSortingTitle">Sorting contacts</string>
+    <string name="searchContactsOrderSortingTitle">Sorting search contacts</string>
 </resources>
