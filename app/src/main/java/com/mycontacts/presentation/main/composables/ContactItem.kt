@@ -1,6 +1,8 @@
 package com.mycontacts.presentation.main.composables
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,18 +34,20 @@ import com.mycontacts.utils.Constants._18sp
 import com.mycontacts.utils.Constants._20sp
 import com.mycontacts.utils.convertTimestamp
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ContactItem(
     contactInfo: ContactInfo,
-    onContactClick: (ContactInfo) -> Unit
+    onContactClick: () -> Unit,
+    onLongContactClick: () -> Unit
 ) {
     Card(
-        onClick = {
-            onContactClick(contactInfo)
-        },
         modifier = Modifier
-            .padding(dimensionResource(id = R.dimen._10dp)),
+            .padding(dimensionResource(id = R.dimen._10dp))
+            .combinedClickable(
+                onLongClick = onLongContactClick,
+                onClick = onContactClick
+            ),
         shape = MaterialTheme.shapes.large,
         elevation = CardDefaults.cardElevation(
             defaultElevation = dimensionResource(id = R.dimen._0dp),

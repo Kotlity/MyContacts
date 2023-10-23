@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -14,10 +15,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -27,8 +32,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mycontacts.R
 import com.mycontacts.data.contacts.ContactInfo
+import com.mycontacts.presentation.main.composables.ContactActionsModalBottomSheet
 import com.mycontacts.presentation.main.composables.ContactGeneralList
 import com.mycontacts.presentation.main.composables.ContactSearchList
 import com.mycontacts.presentation.main.composables.ContactsOrderSection
@@ -41,14 +48,19 @@ import com.mycontacts.presentation.main.composables.RadioButtonsSection
 import com.mycontacts.presentation.main.composables.SearchContactsFilteringSection
 import com.mycontacts.presentation.main.viewmodels.MainViewModel
 import com.mycontacts.utils.Constants.contactsNotFound
+import com.mycontacts.utils.Constants.deleteContactNotSuccessful
+import com.mycontacts.utils.Constants.deleteContactSuccessful
+import com.mycontacts.utils.Constants.deleteContactUndo
 import com.mycontacts.utils.Constants.dismissSnackbarActionLabel
 import com.mycontacts.utils.Constants.onDismissButtonClicked
 import com.mycontacts.utils.ContactOrder
 import com.mycontacts.utils.ContactOrderType
+import com.mycontacts.utils.Resources
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     mainViewModel: MainViewModel,
@@ -56,10 +68,12 @@ fun MainScreen(
     onContactInfoClicked: (ContactInfo) -> Unit
 ) {
 
-    val isUserHasPermissionsForMainScreen = mainViewModel.isUserHasPermissionsForMainScreen
+    val isUserHasPermissionsForMainScreen = mainViewModel.mainScreenPermissionsState
     val contactsState = mainViewModel.contactsState
     val contactsSearchState = mainViewModel.contactsSearchState
     val contactsOrderSectionVisibleState = mainViewModel.contactsOrderSectionVisibleState
+    val contactActionsModalBottomSheetState = mainViewModel.modalBottomSheetState
+    val deleteContactResult = mainViewModel.deleteContactResult.collectAsStateWithLifecycle(initialValue = null).value
 
     val context = LocalContext.current
 
@@ -67,18 +81,20 @@ fun MainScreen(
         SnackbarHostState()
     }
 
+    val modalBottomSheetState = rememberModalBottomSheetState()
+
     val coroutineScope = rememberCoroutineScope()
 
     val lazyListState = rememberLazyListState()
 
     val permissionToAccessAllFilesLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            event(MainEvent.UpdateIsUserHasPermissionToAccessAllFiles(Environment.isExternalStorageManager()))
+            event(MainEvent.Permissions.UpdateIsUserHasPermissionToAccessAllFiles(Environment.isExternalStorageManager()))
         }
     }
 
     val permissionToReadContactsLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) { isGranted ->
-        event(MainEvent.UpdateIsUserHasPermissionToReadContacts(isGranted))
+        event(MainEvent.Permissions.UpdateIsUserHasPermissionToReadContacts(isGranted))
     }
 
     LaunchedEffect(key1 = isUserHasPermissionsForMainScreen) {
@@ -99,6 +115,29 @@ fun MainScreen(
             }
     }
 
+//    LaunchedEffect(key1 = Unit) {
+//        deleteContactFlowResult.collect { result ->
+//            when(result) {
+//                is Resources.Loading -> {
+//
+//                }
+//                is Resources.Success -> {
+//                    result.data?.let {
+//                        val snackbarResult = snackbarHostState.showSnackbar(
+//                            message = if (it) deleteContactSuccessful else deleteContactNotSuccessful,
+//                            actionLabel = deleteContactUndo,
+//                            duration = SnackbarDuration.Long
+//                        )
+//                        if (snackbarResult == SnackbarResult.ActionPerformed) {
+//                            //TODO: RESTORE RECENTLY DELETED CONTACT
+//                        }
+//                    }
+//                }
+//                else -> return@collect
+//            }
+//        }
+//    }
+
     if (!isUserHasPermissionsForMainScreen.isUserHasPermissionToAccessAllFiles) {
         PermissionToAllFilesAlertDialog(
             onConfirmButtonClick = {
@@ -117,105 +156,174 @@ fun MainScreen(
             }
         )
     }
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .padding(paddingValues)
-                    .fillMaxSize()
-            ) {
-                CustomSearchBar(
-                    contactsSearchState = contactsSearchState,
-                    onQueryChangeEvent = { event(MainEvent.SearchContact(it, contactsSearchState.searchContactOrder)) },
-                    onUpdateSearchBarEvent = { event(MainEvent.UpdateSearchBarState(it)) },
-                    onClearSearchQueryEvent = { event(MainEvent.ClearSearchQuery) }
-                ) {
-                    AnimatedVisibility(visible = contactsSearchState.isLoading) {
-                        CustomProgressBar(modifier = Modifier.fillMaxSize())
-                    }
-                    SearchContactsFilteringSection(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = dimensionResource(id = R.dimen._5dp)),
-                        isExpanded = contactsSearchState.isSearchDropdownMenuExpanded,
-                        currentSearchContactOrder = contactsSearchState.searchContactOrder,
-                        onSearchContactOrderClick = { event(MainEvent.OnSearchContactOrderClick(contactsSearchState.searchQuery, it)) } ,
-                        onUpdateDropdownMenuVisibility = { event(MainEvent.UpdateSearchDropdownMenuState(it)) }
-                    )
-                    if (contactsSearchState.contacts.isNotEmpty()) {
-                        ContactSearchList(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            contacts = contactsSearchState.contacts,
-                            onContactClick = { contactInfo ->
-                                onContactInfoClicked(contactInfo)
-                            }
-                        )
-                    }
-                    if (contactsSearchState.contacts.isEmpty() && !contactsSearchState.isLoading) {
-                        EmptyContacts(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            message = contactsSearchState.errorMessage ?: contactsNotFound,
-                            imagePainter = painterResource(id = R.drawable.icon_not_found)
-                        )
-                    }
-                }
-                ContactsOrderSection(
+
+    if (contactActionsModalBottomSheetState.isShouldShow) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                event(MainEvent.UpdateModalBottomSheetVisibility)
+            },
+            sheetState = modalBottomSheetState,
+            content = {
+                ContactActionsModalBottomSheet(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(
-                            start = dimensionResource(id = R.dimen._10dp),
-                            end = dimensionResource(id = R.dimen._10dp),
-                            bottom = dimensionResource(id = R.dimen._5dp)
-                        ),
-                    onIconClick = {
-                        event(MainEvent.UpdateContactOrderSectionVisibility(!contactsOrderSectionVisibleState))
+                        .padding(vertical = dimensionResource(id = R.dimen._20dp)),
+                    onEditContactClick = {
+                        coroutineScope.launch {
+                            modalBottomSheetState.hide()
+                            event(MainEvent.UpdateModalBottomSheetVisibility)
+                        }
+                    },
+                    onDeleteContactClick = {
+                        contactActionsModalBottomSheetState.contactInfo?.let { contactInfo ->
+                            Log.e("MyTag", "delete contact after modal bottom sheet")
+                            event(MainEvent.DeleteContact(contactInfo.id))
+                        }
+                        coroutineScope.launch {
+                            modalBottomSheetState.hide()
+                            event(MainEvent.UpdateModalBottomSheetVisibility)
+                        }
                     }
                 )
-                AnimatedVisibility(visible = contactsOrderSectionVisibleState) {
-                    RadioButtonsSection(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(dimensionResource(id = R.dimen._10dp)),
-                        currentContactOrder = contactsState.contactOrder,
-                        onOrderClick = { contactOrder ->
-                            event(MainEvent.GetAllContacts(contactOrder))
+            }
+        )
+    }
+
+    deleteContactResult?.let { result ->
+        when(result) {
+            is Resources.Loading -> {
+                Log.e("MyTag", "loading")
+                CustomProgressBar(modifier = Modifier.fillMaxSize())
+            }
+            is Resources.Success -> {
+                result.data?.let {
+                    coroutineScope.launch {
+                        val snackbarResult = snackbarHostState.showSnackbar(
+                            message = if (it) deleteContactSuccessful else deleteContactNotSuccessful,
+                            actionLabel = deleteContactUndo,
+                            duration = SnackbarDuration.Long
+                        )
+                        when(snackbarResult) {
+                            SnackbarResult.ActionPerformed -> {
+                                //TODO: RESTORE RECENTLY DELETED CONTACT FROM ModalBottomSheetState
+                            }
+                            SnackbarResult.Dismissed -> {
+                                event(MainEvent.UpdateModalBottomSheetContactInfo(null))
+                            }
                         }
-                    )
+                    }
                 }
-                AnimatedVisibility(visible = contactsState.isLoading) {
-                    CustomProgressBar(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                    )
+            }
+            is Resources.Error -> return@let
+        }
+    }
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        ) {
+            CustomSearchBar(
+                contactsSearchState = contactsSearchState,
+                onQueryChangeEvent = { event(MainEvent.SearchContact(it, contactsSearchState.searchContactOrder)) },
+                onUpdateSearchBarEvent = { event(MainEvent.UpdateSearchBarState(it)) },
+                onClearSearchQueryEvent = { event(MainEvent.ClearSearchQuery) }
+            ) {
+                AnimatedVisibility(visible = contactsSearchState.isLoading) {
+                    CustomProgressBar(modifier = Modifier.fillMaxSize())
                 }
-                if (contactsState.contacts.isNotEmpty()) {
-                    ContactGeneralList(
+                SearchContactsFilteringSection(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = dimensionResource(id = R.dimen._5dp)),
+                    isExpanded = contactsSearchState.isSearchDropdownMenuExpanded,
+                    currentSearchContactOrder = contactsSearchState.searchContactOrder,
+                    onSearchContactOrderClick = { event(MainEvent.OnSearchContactOrderClick(contactsSearchState.searchQuery, it)) } ,
+                    onUpdateDropdownMenuVisibility = { event(MainEvent.UpdateSearchDropdownMenuState(it)) }
+                )
+                if (contactsSearchState.contacts.isNotEmpty()) {
+                    ContactSearchList(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
-                        lazyListState = lazyListState,
-                        contacts = contactsState.contacts,
+                        contacts = contactsSearchState.contacts,
                         onContactClick = { contactInfo ->
                             onContactInfoClicked(contactInfo)
+                        },
+                        onLongContactClick = { contactInfo ->
+
                         }
                     )
                 }
-                if (contactsState.contacts.isEmpty() && !contactsState.isLoading) {
+                if (contactsSearchState.contacts.isEmpty() && !contactsSearchState.isLoading) {
                     EmptyContacts(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
-                        message = contactsState.errorMessage,
-                        imagePainter = painterResource(id = R.drawable.no_image_contact)
+                        message = contactsSearchState.errorMessage ?: contactsNotFound,
+                        imagePainter = painterResource(id = R.drawable.icon_not_found)
                     )
                 }
             }
+            ContactsOrderSection(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = dimensionResource(id = R.dimen._10dp),
+                        end = dimensionResource(id = R.dimen._10dp),
+                        bottom = dimensionResource(id = R.dimen._5dp)
+                    ),
+                onIconClick = {
+                    event(MainEvent.UpdateContactOrderSectionVisibility(!contactsOrderSectionVisibleState))
+                }
+            )
+            AnimatedVisibility(visible = contactsOrderSectionVisibleState) {
+                RadioButtonsSection(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(dimensionResource(id = R.dimen._10dp)),
+                    currentContactOrder = contactsState.contactOrder,
+                    onOrderClick = { contactOrder ->
+                        event(MainEvent.GetAllContacts(contactOrder))
+                    }
+                )
+            }
+            AnimatedVisibility(visible = contactsState.isLoading) {
+                CustomProgressBar(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                )
+            }
+            if (contactsState.contacts.isNotEmpty()) {
+                ContactGeneralList(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    lazyListState = lazyListState,
+                    contacts = contactsState.contacts,
+                    onContactClick = { contactInfo ->
+                        onContactInfoClicked(contactInfo)
+                    },
+                    onLongContactClick = { contactInfo ->
+                        event(MainEvent.UpdateModalBottomSheetVisibility)
+                        event(MainEvent.UpdateModalBottomSheetContactInfo(contactInfo))
+                    }
+                )
+            }
+            if (contactsState.contacts.isEmpty() && !contactsState.isLoading) {
+                EmptyContacts(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    message = contactsState.errorMessage,
+                    imagePainter = painterResource(id = R.drawable.no_image_contact)
+                )
+            }
         }
+    }
 }

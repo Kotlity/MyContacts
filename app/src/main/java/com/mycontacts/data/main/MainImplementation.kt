@@ -1,11 +1,14 @@
 package com.mycontacts.data.main
 
 import android.content.ContentResolver
+import android.content.ContentUris
 import android.provider.ContactsContract
+import androidx.core.database.getLongOrNull
 import androidx.core.database.getStringOrNull
 import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.domain.main.Main
 import com.mycontacts.utils.Constants.contactsNotFound
+import com.mycontacts.utils.Constants.deleteDelay
 import com.mycontacts.utils.Constants.emptyContactsErrorMessage
 import com.mycontacts.utils.Constants.searchDelay
 import com.mycontacts.utils.ContactOrder
@@ -40,6 +43,24 @@ class MainImplementation: Main {
 
             if (searchResult.isEmpty()) emit(Resources.Error(contactsNotFound))
             else emit(Resources.Success(searchResult))
+        }
+    }
+
+    override fun deleteContact(contentResolver: ContentResolver, contactId: Long): Flow<Resources<Boolean>> {
+        return flow {
+            emit(Resources.Loading())
+
+            delay(deleteDelay)
+
+            val rawContactId = getRawContactId(contentResolver, contactId)
+            if (rawContactId == null) {
+                emit(Resources.Success(false))
+                return@flow
+            }
+            val rawContactUri = ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, rawContactId)
+
+            contentResolver.delete(rawContactUri, null, null)
+            emit(Resources.Success(true))
         }
     }
 
@@ -160,6 +181,23 @@ class MainImplementation: Main {
             }
         }
         return finalList
+    }
+
+    private fun getRawContactId(contentResolver: ContentResolver, contactId: Long): Long? {
+        var rawContactId: Long? = null
+
+        contentResolver.query(
+            ContactsContract.RawContacts.CONTENT_URI,
+            arrayOf(ContactsContract.RawContacts._ID),
+            ContactsContract.RawContacts.CONTACT_ID + " = ?",
+            arrayOf(contactId.toString()),
+            null
+        )?.use { rawContactCursor ->
+            if (rawContactCursor.moveToFirst()) {
+                rawContactId = rawContactCursor.getLongOrNull(getColumnIndex(rawContactCursor, ContactsContract.RawContacts._ID))
+            }
+        }
+        return rawContactId
     }
 
 }

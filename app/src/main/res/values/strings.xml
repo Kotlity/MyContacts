@@ -19,4 +19,9 @@
     <string name="contactOrderDescending">Descending</string>
     <string name="contactOrderSortingTitle">Sorting contacts</string>
     <string name="searchContactsOrderSortingTitle">Sorting search contacts</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="contactActionsBottomSheetTitle">What do you want to do ?</string>
+    <string name="contactActionsBottomSheetEditContact">Edit contact</string>
+    <string name="contactActionsBottomSheetDeleteContact">Delete contact</string>
 </resources>

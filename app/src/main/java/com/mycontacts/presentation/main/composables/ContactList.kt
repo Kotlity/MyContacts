@@ -12,7 +12,8 @@ fun ContactGeneralList(
     modifier: Modifier,
     lazyListState: LazyListState,
     contacts: List<ContactInfo>,
-    onContactClick: (ContactInfo) -> Unit
+    onContactClick: (ContactInfo) -> Unit,
+    onLongContactClick: (ContactInfo) -> Unit
 ) {
     LazyColumn(
         modifier = modifier,
@@ -21,7 +22,12 @@ fun ContactGeneralList(
         items(contacts) { contact ->
             ContactItem(
                 contactInfo = contact,
-                onContactClick = onContactClick
+                onContactClick = {
+                    onContactClick(contact)
+                },
+                onLongContactClick = {
+                    onLongContactClick(contact)
+                }
             )
         }
     }
@@ -31,13 +37,19 @@ fun ContactGeneralList(
 fun ContactSearchList(
     modifier: Modifier,
     contacts: List<ContactInfo>,
-    onContactClick: (ContactInfo) -> Unit
+    onContactClick: (ContactInfo) -> Unit,
+    onLongContactClick: (ContactInfo) -> Unit
 ) {
     LazyColumn(modifier = modifier) {
         items(contacts) { contact ->
             ContactItem(
                 contactInfo = contact,
-                onContactClick = onContactClick
+                onContactClick = {
+                    onContactClick(contact)
+                },
+                onLongContactClick = {
+                    onLongContactClick(contact)
+                }
             )
         }
     }

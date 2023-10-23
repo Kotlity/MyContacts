@@ -55,8 +55,8 @@ fun NavigationHost(
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     mainViewModel.onEvent(contentResolver, MainEvent.OnMainViewModelInitializing(
                         Environment.isExternalStorageManager(),
-                        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED
-                    ))
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED)
+                    )
                 }
 
                 MainScreen(
