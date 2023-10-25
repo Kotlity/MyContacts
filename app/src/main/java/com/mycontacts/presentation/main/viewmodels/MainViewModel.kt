@@ -14,12 +14,17 @@ import com.mycontacts.presentation.main.states.ContactsSearchState
 import com.mycontacts.presentation.main.states.ContactsState
 import com.mycontacts.presentation.main.states.ModalBottomSheetState
 import com.mycontacts.presentation.main.states.PermissionsForMainScreenState
+import com.mycontacts.presentation.main.states.WriteContactsAlertDialogState
 import com.mycontacts.utils.Constants.contactsNotFound
+import com.mycontacts.utils.Constants.deleteContactNotSuccessful
+import com.mycontacts.utils.Constants.deleteContactSuccessful
+import com.mycontacts.utils.ContactAction
 import com.mycontacts.utils.ContactOrder
 import com.mycontacts.utils.Resources
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -40,7 +45,13 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
     var modalBottomSheetState by mutableStateOf(ModalBottomSheetState())
         private set
 
-    var deleteContactResult = MutableSharedFlow<Resources<Boolean>>()
+    var writeContactsPermissionRationaleAlertDialog by mutableStateOf(WriteContactsAlertDialogState())
+        private set
+
+    var writeContactsPermissionResult = Channel<Boolean>()
+        private set
+
+    var deleteContactResult = Channel<String>()
         private set
 
     var contactsOrderSectionVisibleState by derivedStateOf { mutableStateOf(true) }.value
@@ -53,13 +64,22 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
     fun onEvent(contentResolver: ContentResolver, mainEvent: MainEvent) {
         when(mainEvent) {
             is MainEvent.OnMainViewModelInitializing -> {
-                onMainViewModelInitializing(mainEvent.permissionToAccessAllFiles, mainEvent.permissionToReadContacts)
+                onMainViewModelInitializing(mainEvent.permissionToAccessAllFiles, mainEvent.permissionToReadContacts, mainEvent.permissionToWriteContacts)
             }
             is MainEvent.Permissions.UpdateIsUserHasPermissionToAccessAllFiles -> {
                 updateIsUserHasPermissionToAccessAllFiles(mainEvent.isUserHasPermissionToAccessAllFiles)
             }
             is MainEvent.Permissions.UpdateIsUserHasPermissionToReadContacts -> {
                 updateIsUserHasPermissionToReadContacts(mainEvent.isUserHasPermissionToReadContacts)
+            }
+            is MainEvent.Permissions.UpdateIsUserHasPermissionToWriteContacts -> {
+                updateIsUserHasPermissionToWriteContacts(mainEvent.isUserHasPermissionToWriteContacts)
+            }
+            is MainEvent.Permissions.UpdateWriteContactsPermissionRationaleAlertDialog -> {
+                updateWriteContactsPermissionRationaleAlertDialog(mainEvent.contactAction)
+            }
+            MainEvent.Permissions.ClearWriteContactsPermissionRationaleAlertDialog -> {
+                clearWriteContactsPermissionRationaleAlertDialog()
             }
             is MainEvent.GetAllContacts -> {
                 if (checkIfTheSameContactOrderClicked(mainEvent.contactOrder)) return
@@ -82,10 +102,13 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
                 updateContactOrderSectionVisibility(mainEvent.isSectionVisible)
             }
             is MainEvent.DeleteContact -> {
-                deleteContact(contentResolver, mainEvent.contactId)
+                deleteContact(contentResolver, mainEvent.contactInfo)
             }
             is MainEvent.UpdateModalBottomSheetContactInfo -> {
                 updateModalBottomSheetContactInfo(mainEvent.contactInfo)
+            }
+            is MainEvent.UpdateWriteContactsPermissionResult -> {
+                updateWriteContactsPermissionResult(mainEvent.isGranted)
             }
             MainEvent.ClearSearchQuery -> {
                 clearSearchQuery()
@@ -96,27 +119,12 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         }
     }
 
-    private fun onMainViewModelInitializing(isUserHasPermissionToAccessAllFiles: Boolean, isUserHasPermissionToReadContacts: Boolean) {
+    private fun onMainViewModelInitializing(isUserHasPermissionToAccessAllFiles: Boolean, isUserHasPermissionToReadContacts: Boolean, isUserHasPermissionToWriteContacts: Boolean) {
         mainScreenPermissionsState = mainScreenPermissionsState.copy(
             isUserHasPermissionToAccessAllFiles = isUserHasPermissionToAccessAllFiles,
-            isUserHasPermissionToReadContacts = isUserHasPermissionToReadContacts
+            isUserHasPermissionToReadContacts = isUserHasPermissionToReadContacts,
+            isUserHasPermissionToWriteContacts = isUserHasPermissionToWriteContacts
         )
-    }
-
-    private fun updateIsUserHasPermissionToAccessAllFiles(isUserHasPermissionToAccessAllFiles: Boolean) {
-        mainScreenPermissionsState = mainScreenPermissionsState.copy(isUserHasPermissionToAccessAllFiles = isUserHasPermissionToAccessAllFiles)
-    }
-
-    private fun updateIsUserHasPermissionToReadContacts(isUserHasPermissionToReadContacts: Boolean) {
-        mainScreenPermissionsState = mainScreenPermissionsState.copy(isUserHasPermissionToReadContacts = isUserHasPermissionToReadContacts)
-    }
-
-    private fun updateModalBottomSheetVisibility() {
-        modalBottomSheetState = modalBottomSheetState.copy(isShouldShow = !modalBottomSheetState.isShouldShow)
-    }
-
-    private fun updateModalBottomSheetContactInfo(contactInfo: ContactInfo?) {
-        modalBottomSheetState = modalBottomSheetState.copy(contactInfo = contactInfo)
     }
 
     private fun getAllContacts(contentResolver: ContentResolver, contactOrder: ContactOrder) {
@@ -141,7 +149,7 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
     private fun searchContact(contentResolver: ContentResolver, searchQuery: String, searchContactOrder: ContactOrder) {
         contactsSearchState = contactsSearchState.copy(searchQuery = searchQuery)
         searchJob?.cancel()
-        searchJob = viewModelScope.launch {
+        searchJob = viewModelScope.launch(Dispatchers.IO) {
             main.searchContacts(contentResolver, searchQuery, searchContactOrder).collect { searchResult ->
                 contactsSearchState = when (searchResult) {
                     is Resources.Success -> {
@@ -160,10 +168,57 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         }
     }
 
-    private fun deleteContact(contentResolver: ContentResolver, contactId: Long) {
-        main.deleteContact(contentResolver, contactId).onEach { result ->
-            deleteContactResult.emit(result)
-        }.launchIn(viewModelScope)
+    private fun deleteContact(contentResolver: ContentResolver, contactInfo: ContactInfo) {
+        viewModelScope.launch {
+            val result = main.deleteContact(contentResolver, contactInfo)
+            if (result){
+                deleteContactResult.send(deleteContactSuccessful)
+                removeContactFromList(contactInfo)
+            }
+            else {
+                deleteContactResult.send(deleteContactNotSuccessful)
+            }
+        }
+    }
+
+    private fun removeContactFromList(contactInfo: ContactInfo) {
+        val updatedContactsList = contactsState.contacts.toMutableList()
+        updatedContactsList.remove(contactInfo)
+        contactsState = contactsState.copy(contacts = updatedContactsList.toList())
+    }
+
+    private fun updateIsUserHasPermissionToAccessAllFiles(isUserHasPermissionToAccessAllFiles: Boolean) {
+        mainScreenPermissionsState = mainScreenPermissionsState.copy(isUserHasPermissionToAccessAllFiles = isUserHasPermissionToAccessAllFiles)
+    }
+
+    private fun updateIsUserHasPermissionToReadContacts(isUserHasPermissionToReadContacts: Boolean) {
+        mainScreenPermissionsState = mainScreenPermissionsState.copy(isUserHasPermissionToReadContacts = isUserHasPermissionToReadContacts)
+    }
+
+    private fun updateIsUserHasPermissionToWriteContacts(isUserHasPermissionToWriteContacts: Boolean) {
+        mainScreenPermissionsState = mainScreenPermissionsState.copy(isUserHasPermissionToWriteContacts = isUserHasPermissionToWriteContacts)
+    }
+
+    private fun updateWriteContactsPermissionRationaleAlertDialog(contactAction: ContactAction) {
+        writeContactsPermissionRationaleAlertDialog = writeContactsPermissionRationaleAlertDialog.copy(isShouldShow = !writeContactsPermissionRationaleAlertDialog.isShouldShow, contactAction = contactAction)
+    }
+
+    private fun clearWriteContactsPermissionRationaleAlertDialog() {
+        writeContactsPermissionRationaleAlertDialog = WriteContactsAlertDialogState()
+    }
+
+    private fun updateModalBottomSheetVisibility() {
+        modalBottomSheetState = modalBottomSheetState.copy(isShouldShow = !modalBottomSheetState.isShouldShow)
+    }
+
+    private fun updateModalBottomSheetContactInfo(contactInfo: ContactInfo?) {
+        modalBottomSheetState = modalBottomSheetState.copy(contactInfo = contactInfo)
+    }
+
+    private fun updateWriteContactsPermissionResult(isGranted: Boolean) {
+        viewModelScope.launch {
+            writeContactsPermissionResult.send(isGranted)
+        }
     }
 
     private fun updateSearchDropdownMenuState(searchDropdownMenu: Boolean) {

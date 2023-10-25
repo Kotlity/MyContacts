@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -103,21 +104,12 @@ fun ContactItem(
                 )
             }
         }
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(
-                    start = dimensionResource(id = R.dimen._13dp),
-                    end = dimensionResource(id = R.dimen._10dp)
-                ),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(end = dimensionResource(id = R.dimen._10dp)),
+            contentAlignment = Alignment.BottomEnd
         ) {
-            Text(
-                text = contactInfo.id.toString(),
-                fontWeight = FontWeight.Bold,
-                fontSize = _15sp
-            )
             Text(
                 text = convertTimestamp(contactInfo.timeStamp),
                 style = MaterialTheme.typography.displaySmall.copy(

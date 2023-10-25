@@ -12,6 +12,6 @@ interface Main {
 
     fun searchContacts(contentResolver: ContentResolver, searchQuery: String, searchContactOrder: ContactOrder): Flow<Resources<List<ContactInfo>>>
 
-    fun deleteContact(contentResolver: ContentResolver, contactId: Long): Flow<Resources<Boolean>>
+    suspend fun deleteContact(contentResolver: ContentResolver, contactInfo: ContactInfo): Boolean
 
 }

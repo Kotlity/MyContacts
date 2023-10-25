@@ -21,7 +21,11 @@
     <string name="searchContactsOrderSortingTitle">Sorting search contacts</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
+    <string name="confirm">Confirm</string>
+    <string name="dismiss">Dismiss</string>
     <string name="contactActionsBottomSheetTitle">What do you want to do ?</string>
     <string name="contactActionsBottomSheetEditContact">Edit contact</string>
     <string name="contactActionsBottomSheetDeleteContact">Delete contact</string>
+    <string name="writeContactsPermissionRationaleAlertDialogEdit">Before you can edit the contact, you need to accept the required permission</string>
+    <string name="writeContactsPermissionRationaleAlertDialogDelete">Before you can delete the contact, you need to accept the required permission</string>
 </resources>

@@ -11,17 +11,17 @@ object Constants {
     const val zero = 0
     const val splashDelay = 500L
     const val searchDelay = 300L
-    const val deleteDelay = 1500L
 
     const val _06Float = 0.6f
     const val _04Float = 0.4f
     const val _05Float = 0.5f
 
-    val _22sp = 22.sp
-    val _20sp = 20.sp
-    val _18sp = 18.sp
-    val _17sp = 17.sp
     val _15sp = 15.sp
+    val _16sp = 16.sp
+    val _17sp = 17.sp
+    val _18sp = 18.sp
+    val _20sp = 20.sp
+    val _22sp = 22.sp
 
     const val dataStoreName = "dataStore"
     private const val hasUserAlreadyClickedOnStartButtonName = "hasUserAlreadyClickedOnStartButton"
@@ -29,6 +29,8 @@ object Constants {
     const val dismissSnackbarActionLabel = "Understood..."
     const val emptyContactsErrorMessage = "Nothing to show..."
     const val contactsNotFound = "Sorry, but there are no such contacts"
+    const val writeContactsPermissionGranted = "Permission granted, you can now edit/delete contacts"
+    const val writeContactsPermissionNotGranted = "Permission not granted, repeat the action again"
     const val deleteContactSuccessful = "The contact was successfully deleted"
     const val deleteContactNotSuccessful = "Sorry, an unknown error occurred"
     const val deleteContactUndo = "Undo"

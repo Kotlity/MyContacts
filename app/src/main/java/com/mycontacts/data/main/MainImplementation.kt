@@ -8,7 +8,6 @@ import androidx.core.database.getStringOrNull
 import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.domain.main.Main
 import com.mycontacts.utils.Constants.contactsNotFound
-import com.mycontacts.utils.Constants.deleteDelay
 import com.mycontacts.utils.Constants.emptyContactsErrorMessage
 import com.mycontacts.utils.Constants.searchDelay
 import com.mycontacts.utils.ContactOrder
@@ -16,9 +15,12 @@ import com.mycontacts.utils.ContactOrderType
 import com.mycontacts.utils.Resources
 import com.mycontacts.utils.getColumnIndex
 import com.mycontacts.utils.retrieveBitmap
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 
 class MainImplementation: Main {
 
@@ -30,7 +32,7 @@ class MainImplementation: Main {
 
             if (result.isEmpty()) emit(Resources.Error(emptyContactsErrorMessage))
             else emit(Resources.Success(result))
-        }
+        }.flowOn(Dispatchers.IO)
     }
 
     override fun searchContacts(contentResolver: ContentResolver, searchQuery: String, searchContactOrder: ContactOrder): Flow<Resources<List<ContactInfo>>> {
@@ -43,24 +45,21 @@ class MainImplementation: Main {
 
             if (searchResult.isEmpty()) emit(Resources.Error(contactsNotFound))
             else emit(Resources.Success(searchResult))
-        }
+        }.flowOn(Dispatchers.IO)
     }
 
-    override fun deleteContact(contentResolver: ContentResolver, contactId: Long): Flow<Resources<Boolean>> {
-        return flow {
-            emit(Resources.Loading())
-
-            delay(deleteDelay)
-
-            val rawContactId = getRawContactId(contentResolver, contactId)
+    override suspend fun deleteContact(contentResolver: ContentResolver, contactInfo: ContactInfo): Boolean {
+        return withContext(Dispatchers.IO) {
+            val rawContactId = getRawContactId(contentResolver, contactInfo.id)
             if (rawContactId == null) {
-                emit(Resources.Success(false))
-                return@flow
+                false
+            } else {
+                val rawContactUri = ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, rawContactId)
+                try {
+                    contentResolver.delete(rawContactUri, null, null)
+                    true
+                } catch (_: Exception) { false }
             }
-            val rawContactUri = ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, rawContactId)
-
-            contentResolver.delete(rawContactUri, null, null)
-            emit(Resources.Success(true))
         }
     }
 

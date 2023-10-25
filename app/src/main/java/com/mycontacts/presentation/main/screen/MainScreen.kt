@@ -2,11 +2,11 @@ package com.mycontacts.presentation.main.screen
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -32,7 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.core.content.ContextCompat
 import com.mycontacts.R
 import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.presentation.main.composables.ContactActionsModalBottomSheet
@@ -46,18 +46,21 @@ import com.mycontacts.presentation.main.composables.EmptyContacts
 import com.mycontacts.presentation.main.composables.PermissionToAllFilesAlertDialog
 import com.mycontacts.presentation.main.composables.RadioButtonsSection
 import com.mycontacts.presentation.main.composables.SearchContactsFilteringSection
+import com.mycontacts.presentation.main.composables.WriteContactsPermissionRationaleAlertDialog
 import com.mycontacts.presentation.main.viewmodels.MainViewModel
 import com.mycontacts.utils.Constants.contactsNotFound
-import com.mycontacts.utils.Constants.deleteContactNotSuccessful
 import com.mycontacts.utils.Constants.deleteContactSuccessful
 import com.mycontacts.utils.Constants.deleteContactUndo
 import com.mycontacts.utils.Constants.dismissSnackbarActionLabel
 import com.mycontacts.utils.Constants.onDismissButtonClicked
+import com.mycontacts.utils.Constants.writeContactsPermissionNotGranted
+import com.mycontacts.utils.Constants.writeContactsPermissionGranted
+import com.mycontacts.utils.ContactAction
 import com.mycontacts.utils.ContactOrder
 import com.mycontacts.utils.ContactOrderType
-import com.mycontacts.utils.Resources
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,13 +70,14 @@ fun MainScreen(
     event: (MainEvent) -> Unit,
     onContactInfoClicked: (ContactInfo) -> Unit
 ) {
-
     val isUserHasPermissionsForMainScreen = mainViewModel.mainScreenPermissionsState
     val contactsState = mainViewModel.contactsState
     val contactsSearchState = mainViewModel.contactsSearchState
     val contactsOrderSectionVisibleState = mainViewModel.contactsOrderSectionVisibleState
     val contactActionsModalBottomSheetState = mainViewModel.modalBottomSheetState
-    val deleteContactResult = mainViewModel.deleteContactResult.collectAsStateWithLifecycle(initialValue = null).value
+    val writeContactsPermissionRationaleAlertDialogState = mainViewModel.writeContactsPermissionRationaleAlertDialog
+    val writeContactsPermissionResult = mainViewModel.writeContactsPermissionResult.receiveAsFlow()
+    val deleteContactResult = mainViewModel.deleteContactResult.receiveAsFlow()
 
     val context = LocalContext.current
 
@@ -97,6 +101,10 @@ fun MainScreen(
         event(MainEvent.Permissions.UpdateIsUserHasPermissionToReadContacts(isGranted))
     }
 
+    val permissionToWriteContactsLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) { isGranted ->
+        event(MainEvent.UpdateWriteContactsPermissionResult(isGranted))
+    }
+
     LaunchedEffect(key1 = isUserHasPermissionsForMainScreen) {
         if (isUserHasPermissionsForMainScreen.isUserHasPermissionToAccessAllFiles && !isUserHasPermissionsForMainScreen.isUserHasPermissionToReadContacts) {
             permissionToReadContactsLauncher.launch(Manifest.permission.READ_CONTACTS)
@@ -115,28 +123,29 @@ fun MainScreen(
             }
     }
 
-//    LaunchedEffect(key1 = Unit) {
-//        deleteContactFlowResult.collect { result ->
-//            when(result) {
-//                is Resources.Loading -> {
-//
-//                }
-//                is Resources.Success -> {
-//                    result.data?.let {
-//                        val snackbarResult = snackbarHostState.showSnackbar(
-//                            message = if (it) deleteContactSuccessful else deleteContactNotSuccessful,
-//                            actionLabel = deleteContactUndo,
-//                            duration = SnackbarDuration.Long
-//                        )
-//                        if (snackbarResult == SnackbarResult.ActionPerformed) {
-//                            //TODO: RESTORE RECENTLY DELETED CONTACT
-//                        }
-//                    }
-//                }
-//                else -> return@collect
-//            }
-//        }
-//    }
+    LaunchedEffect(key1 = Unit) {
+        writeContactsPermissionResult.collect { isGranted ->
+            snackbarHostState.showSnackbar(
+                message = if (isGranted) writeContactsPermissionGranted else writeContactsPermissionNotGranted,
+                duration = SnackbarDuration.Short
+            )
+        }
+    }
+
+    LaunchedEffect(key1 = Unit) {
+        deleteContactResult.collect { result ->
+            val snackbarResult = snackbarHostState.showSnackbar(
+                message = result,
+                actionLabel = if (result == deleteContactSuccessful) deleteContactUndo else null,
+                duration = SnackbarDuration.Long
+            )
+            if (snackbarResult == SnackbarResult.ActionPerformed) {
+                contactActionsModalBottomSheetState.contactInfo?.let { contactInfo ->
+                    //TODO: RESTORE RECENTLY DELETED CONTACT FROM ModalBottomSheetState
+                }
+            }
+        }
+    }
 
     if (!isUserHasPermissionsForMainScreen.isUserHasPermissionToAccessAllFiles) {
         PermissionToAllFilesAlertDialog(
@@ -169,19 +178,34 @@ fun MainScreen(
                         .fillMaxWidth()
                         .padding(vertical = dimensionResource(id = R.dimen._20dp)),
                     onEditContactClick = {
-                        coroutineScope.launch {
-                            modalBottomSheetState.hide()
-                            event(MainEvent.UpdateModalBottomSheetVisibility)
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+                            coroutineScope.launch {
+                                modalBottomSheetState.hide()
+                                event(MainEvent.UpdateModalBottomSheetVisibility)
+                            }
+                        } else {
+                            event(MainEvent.Permissions.UpdateWriteContactsPermissionRationaleAlertDialog(ContactAction.EDIT))
+                            coroutineScope.launch {
+                                modalBottomSheetState.hide()
+                                event(MainEvent.UpdateModalBottomSheetVisibility)
+                            }
                         }
                     },
                     onDeleteContactClick = {
-                        contactActionsModalBottomSheetState.contactInfo?.let { contactInfo ->
-                            Log.e("MyTag", "delete contact after modal bottom sheet")
-                            event(MainEvent.DeleteContact(contactInfo.id))
-                        }
-                        coroutineScope.launch {
-                            modalBottomSheetState.hide()
-                            event(MainEvent.UpdateModalBottomSheetVisibility)
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+                            coroutineScope.launch {
+                                modalBottomSheetState.hide()
+                                event(MainEvent.UpdateModalBottomSheetVisibility)
+                            }
+                            contactActionsModalBottomSheetState.contactInfo?.let { contactInfo ->
+                                event(MainEvent.DeleteContact(contactInfo))
+                            }
+                        } else {
+                            event(MainEvent.Permissions.UpdateWriteContactsPermissionRationaleAlertDialog(ContactAction.DELETE))
+                            coroutineScope.launch {
+                                modalBottomSheetState.hide()
+                                event(MainEvent.UpdateModalBottomSheetVisibility)
+                            }
                         }
                     }
                 )
@@ -189,33 +213,17 @@ fun MainScreen(
         )
     }
 
-    deleteContactResult?.let { result ->
-        when(result) {
-            is Resources.Loading -> {
-                Log.e("MyTag", "loading")
-                CustomProgressBar(modifier = Modifier.fillMaxSize())
+    if (writeContactsPermissionRationaleAlertDialogState.isShouldShow) {
+        WriteContactsPermissionRationaleAlertDialog(
+            contactAction = writeContactsPermissionRationaleAlertDialogState.contactAction,
+            onConfirmButtonClick = {
+                event(MainEvent.Permissions.ClearWriteContactsPermissionRationaleAlertDialog)
+                permissionToWriteContactsLauncher.launch(Manifest.permission.WRITE_CONTACTS)
+            },
+            onDismissButtonClick = {
+                event(MainEvent.Permissions.ClearWriteContactsPermissionRationaleAlertDialog)
             }
-            is Resources.Success -> {
-                result.data?.let {
-                    coroutineScope.launch {
-                        val snackbarResult = snackbarHostState.showSnackbar(
-                            message = if (it) deleteContactSuccessful else deleteContactNotSuccessful,
-                            actionLabel = deleteContactUndo,
-                            duration = SnackbarDuration.Long
-                        )
-                        when(snackbarResult) {
-                            SnackbarResult.ActionPerformed -> {
-                                //TODO: RESTORE RECENTLY DELETED CONTACT FROM ModalBottomSheetState
-                            }
-                            SnackbarResult.Dismissed -> {
-                                event(MainEvent.UpdateModalBottomSheetContactInfo(null))
-                            }
-                        }
-                    }
-                }
-            }
-            is Resources.Error -> return@let
-        }
+        )
     }
 
     Scaffold(
