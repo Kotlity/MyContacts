@@ -29,7 +29,6 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import com.mycontacts.R
 import com.mycontacts.data.contacts.ContactInfo
-import com.mycontacts.utils.Constants._15sp
 import com.mycontacts.utils.Constants._17sp
 import com.mycontacts.utils.Constants._18sp
 import com.mycontacts.utils.Constants._20sp

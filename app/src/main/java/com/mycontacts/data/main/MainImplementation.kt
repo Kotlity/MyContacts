@@ -1,9 +1,10 @@
 package com.mycontacts.data.main
 
 import android.content.ContentResolver
-import android.content.ContentUris
+import android.content.ContentValues
+import android.graphics.Bitmap
+import android.net.Uri
 import android.provider.ContactsContract
-import androidx.core.database.getLongOrNull
 import androidx.core.database.getStringOrNull
 import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.domain.main.Main
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 
 class MainImplementation: Main {
 
@@ -50,21 +52,88 @@ class MainImplementation: Main {
 
     override suspend fun deleteContact(contentResolver: ContentResolver, contactInfo: ContactInfo): Boolean {
         return withContext(Dispatchers.IO) {
-            val rawContactId = getRawContactId(contentResolver, contactInfo.id)
-            if (rawContactId == null) {
-                false
-            } else {
-                val rawContactUri = ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, rawContactId)
-                try {
-                    contentResolver.delete(rawContactUri, null, null)
-                    true
-                } catch (_: Exception) { false }
+            try {
+                contentResolver.query(ContactsContract.Contacts.CONTENT_URI, null, null, null, null)?.use { generalCursor ->
+                    if (generalCursor.moveToFirst()) {
+                        do {
+                            if (generalCursor.getString(getColumnIndex(generalCursor, ContactsContract.PhoneLookup._ID)) == contactInfo.id.toString()) {
+                                val lookup = generalCursor.getString(getColumnIndex(generalCursor, ContactsContract.Contacts.LOOKUP_KEY))
+                                val lookupUri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_LOOKUP_URI, lookup)
+                                contentResolver.delete(lookupUri, null, null)
+                                break
+                            }
+                        } while (generalCursor.moveToNext())
+                    }
+                }
+            } catch (_: Exception) {
+                return@withContext false
+            }
+            true
+        }
+    }
+
+    override suspend fun restoreContact(contentResolver: ContentResolver, contactInfo: ContactInfo): ContactInfo? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val rawContactsContentValues = ContentValues().apply {
+                    putNull(ContactsContract.RawContacts.ACCOUNT_TYPE)
+                    putNull(ContactsContract.RawContacts.ACCOUNT_NAME)
+                }
+                val rawContactUri = contentResolver.insert(ContactsContract.RawContacts.CONTENT_URI, rawContactsContentValues)
+                val rawContactId = rawContactUri!!.lastPathSegment!!
+
+                val firstLastNameContentValues = ContentValues().apply {
+                    put(ContactsContract.Data.RAW_CONTACT_ID, rawContactId)
+                    put(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
+                    put(ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME, contactInfo.firstName)
+                    contactInfo.lastName?.let { lastName -> put(ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME, lastName) }
+                }
+                contentResolver.insert(ContactsContract.Data.CONTENT_URI, firstLastNameContentValues)
+
+                val phoneNumberContentValues = ContentValues().apply {
+                    put(ContactsContract.Data.RAW_CONTACT_ID, rawContactId)
+                    put(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
+                    put(ContactsContract.CommonDataKinds.Phone.NUMBER, contactInfo.phoneNumber)
+                    put(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
+                    put(ContactsContract.CommonDataKinds.Phone.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE)
+                }
+                contentResolver.insert(ContactsContract.Data.CONTENT_URI, phoneNumberContentValues)
+
+                val timeStampContentValues = ContentValues().apply {
+                    put(ContactsContract.Data.RAW_CONTACT_ID, rawContactId)
+                    put(ContactsContract.Data.MIMETYPE, ContactsContract.Contacts.CONTENT_ITEM_TYPE)
+                    put(ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP, contactInfo.timeStamp)
+                }
+                contentResolver.insert(ContactsContract.Data.CONTENT_URI, timeStampContentValues)
+
+                contactInfo.photo?.let { bitmap ->
+                    val outputStream = ByteArrayOutputStream()
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+                    val photoByteArray = outputStream.toByteArray()
+
+                    val photoContentValues = ContentValues().apply {
+                        put(ContactsContract.Data.RAW_CONTACT_ID, rawContactId)
+                        put(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE)
+                        put(ContactsContract.CommonDataKinds.Photo.PHOTO, photoByteArray)
+                    }
+                    contentResolver.insert(ContactsContract.Data.CONTENT_URI, photoContentValues)
+                }
+                ContactInfo(
+                    id = rawContactId.toLong(),
+                    photo = contactInfo.photo,
+                    firstName = contactInfo.firstName,
+                    lastName = contactInfo.lastName,
+                    phoneNumber = contactInfo.phoneNumber,
+                    timeStamp = contactInfo.timeStamp
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
             }
         }
     }
 
     private fun retrieveContacts(contentResolver: ContentResolver, retrieveContactsMethod: RetrieveContactsMethod, contactOrder: ContactOrder, searchQuery: String? = null): List<ContactInfo> {
-
         return when(retrieveContactsMethod) {
             RetrieveContactsMethod.GENERAL -> {
                 var generalContactInfoList = mutableListOf<ContactInfo>()
@@ -180,23 +249,6 @@ class MainImplementation: Main {
             }
         }
         return finalList
-    }
-
-    private fun getRawContactId(contentResolver: ContentResolver, contactId: Long): Long? {
-        var rawContactId: Long? = null
-
-        contentResolver.query(
-            ContactsContract.RawContacts.CONTENT_URI,
-            arrayOf(ContactsContract.RawContacts._ID),
-            ContactsContract.RawContacts.CONTACT_ID + " = ?",
-            arrayOf(contactId.toString()),
-            null
-        )?.use { rawContactCursor ->
-            if (rawContactCursor.moveToFirst()) {
-                rawContactId = rawContactCursor.getLongOrNull(getColumnIndex(rawContactCursor, ContactsContract.RawContacts._ID))
-            }
-        }
-        return rawContactId
     }
 
 }

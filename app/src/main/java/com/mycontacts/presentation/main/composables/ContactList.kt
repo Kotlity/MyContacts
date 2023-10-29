@@ -2,7 +2,7 @@ package com.mycontacts.presentation.main.composables
 
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.mycontacts.data.contacts.ContactInfo
@@ -13,20 +13,20 @@ fun ContactGeneralList(
     lazyListState: LazyListState,
     contacts: List<ContactInfo>,
     onContactClick: (ContactInfo) -> Unit,
-    onLongContactClick: (ContactInfo) -> Unit
+    onLongContactClick: (Int, ContactInfo) -> Unit
 ) {
     LazyColumn(
         modifier = modifier,
         state = lazyListState
     ) {
-        items(contacts) { contact ->
+        itemsIndexed(contacts) { index, contact ->
             ContactItem(
                 contactInfo = contact,
                 onContactClick = {
                     onContactClick(contact)
                 },
                 onLongContactClick = {
-                    onLongContactClick(contact)
+                    onLongContactClick(index, contact)
                 }
             )
         }
@@ -38,17 +38,17 @@ fun ContactSearchList(
     modifier: Modifier,
     contacts: List<ContactInfo>,
     onContactClick: (ContactInfo) -> Unit,
-    onLongContactClick: (ContactInfo) -> Unit
+    onLongContactClick: (Int, ContactInfo) -> Unit
 ) {
     LazyColumn(modifier = modifier) {
-        items(contacts) { contact ->
+        itemsIndexed(contacts) { index, contact ->
             ContactItem(
                 contactInfo = contact,
                 onContactClick = {
                     onContactClick(contact)
                 },
                 onLongContactClick = {
-                    onLongContactClick(contact)
+                    onLongContactClick(index, contact)
                 }
             )
         }

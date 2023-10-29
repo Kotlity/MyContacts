@@ -16,9 +16,9 @@ import com.mycontacts.presentation.main.states.ModalBottomSheetState
 import com.mycontacts.presentation.main.states.PermissionsForMainScreenState
 import com.mycontacts.presentation.main.states.WriteContactsAlertDialogState
 import com.mycontacts.utils.Constants.contactsNotFound
-import com.mycontacts.utils.Constants.deleteContactNotSuccessful
 import com.mycontacts.utils.Constants.deleteContactSuccessful
 import com.mycontacts.utils.ContactAction
+import com.mycontacts.utils.ContactListAction
 import com.mycontacts.utils.ContactOrder
 import com.mycontacts.utils.Resources
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -51,7 +51,7 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
     var writeContactsPermissionResult = Channel<Boolean>()
         private set
 
-    var deleteContactResult = Channel<String>()
+    var deleteContactResult = Channel<Triple<String, Int?, ContactInfo?>>()
         private set
 
     var contactsOrderSectionVisibleState by derivedStateOf { mutableStateOf(true) }.value
@@ -102,10 +102,13 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
                 updateContactOrderSectionVisibility(mainEvent.isSectionVisible)
             }
             is MainEvent.DeleteContact -> {
-                deleteContact(contentResolver, mainEvent.contactInfo)
+                deleteContact(contentResolver, mainEvent.index, mainEvent.contactInfo)
+            }
+            is MainEvent.RestoreContact -> {
+                restoreContact(contentResolver, mainEvent.index, mainEvent.contactInfo)
             }
             is MainEvent.UpdateModalBottomSheetContactInfo -> {
-                updateModalBottomSheetContactInfo(mainEvent.contactInfo)
+                updateModalBottomSheetContactInfo(mainEvent.index, mainEvent.contactInfo)
             }
             is MainEvent.UpdateWriteContactsPermissionResult -> {
                 updateWriteContactsPermissionResult(mainEvent.isGranted)
@@ -168,22 +171,31 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         }
     }
 
-    private fun deleteContact(contentResolver: ContentResolver, contactInfo: ContactInfo) {
+    private fun deleteContact(contentResolver: ContentResolver, index: Int, contactInfo: ContactInfo) {
         viewModelScope.launch {
             val result = main.deleteContact(contentResolver, contactInfo)
             if (result){
-                deleteContactResult.send(deleteContactSuccessful)
-                removeContactFromList(contactInfo)
+                deleteContactResult.send(Triple(deleteContactSuccessful, index, contactInfo))
+                contactListAction(ContactListAction.REMOVE, contactInfo)
             }
-            else {
-                deleteContactResult.send(deleteContactNotSuccessful)
+            else deleteContactResult.send(Triple(deleteContactSuccessful, null, null))
+        }
+    }
+
+    private fun restoreContact(contentResolver: ContentResolver, index: Int, contactInfo: ContactInfo) {
+        viewModelScope.launch {
+            main.restoreContact(contentResolver, contactInfo)?.let { restoredContact ->
+                contactListAction(ContactListAction.RESTORE, restoredContact, index)
             }
         }
     }
 
-    private fun removeContactFromList(contactInfo: ContactInfo) {
+    private fun contactListAction(contactListAction: ContactListAction, contactInfo: ContactInfo, index: Int? = null) {
         val updatedContactsList = contactsState.contacts.toMutableList()
-        updatedContactsList.remove(contactInfo)
+        when(contactListAction) {
+            ContactListAction.REMOVE -> updatedContactsList.remove(contactInfo)
+            ContactListAction.RESTORE -> updatedContactsList.add(index!!, contactInfo)
+        }
         contactsState = contactsState.copy(contacts = updatedContactsList.toList())
     }
 
@@ -211,8 +223,8 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         modalBottomSheetState = modalBottomSheetState.copy(isShouldShow = !modalBottomSheetState.isShouldShow)
     }
 
-    private fun updateModalBottomSheetContactInfo(contactInfo: ContactInfo?) {
-        modalBottomSheetState = modalBottomSheetState.copy(contactInfo = contactInfo)
+    private fun updateModalBottomSheetContactInfo(index: Int?, contactInfo: ContactInfo?) {
+        modalBottomSheetState = modalBottomSheetState.copy(index = index, contactInfo = contactInfo)
     }
 
     private fun updateWriteContactsPermissionResult(isGranted: Boolean) {

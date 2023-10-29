@@ -14,4 +14,6 @@ interface Main {
 
     suspend fun deleteContact(contentResolver: ContentResolver, contactInfo: ContactInfo): Boolean
 
+    suspend fun restoreContact(contentResolver: ContentResolver, contactInfo: ContactInfo): ContactInfo?
+
 }

@@ -133,15 +133,19 @@ fun MainScreen(
     }
 
     LaunchedEffect(key1 = Unit) {
-        deleteContactResult.collect { result ->
+        deleteContactResult.collect { triple ->
             val snackbarResult = snackbarHostState.showSnackbar(
-                message = result,
-                actionLabel = if (result == deleteContactSuccessful) deleteContactUndo else null,
+                message = triple.first,
+                actionLabel = if (triple.first == deleteContactSuccessful) deleteContactUndo else null,
                 duration = SnackbarDuration.Long
             )
             if (snackbarResult == SnackbarResult.ActionPerformed) {
-                contactActionsModalBottomSheetState.contactInfo?.let { contactInfo ->
-                    //TODO: RESTORE RECENTLY DELETED CONTACT FROM ModalBottomSheetState
+                triple.apply {
+                    second?.let { index ->
+                        third?.let { contactInfo ->
+                            event(MainEvent.RestoreContact(index, contactInfo))
+                        }
+                    }
                 }
             }
         }
@@ -170,6 +174,7 @@ fun MainScreen(
         ModalBottomSheet(
             onDismissRequest = {
                 event(MainEvent.UpdateModalBottomSheetVisibility)
+                event(MainEvent.UpdateModalBottomSheetContactInfo(null, null))
             },
             sheetState = modalBottomSheetState,
             content = {
@@ -197,8 +202,12 @@ fun MainScreen(
                                 modalBottomSheetState.hide()
                                 event(MainEvent.UpdateModalBottomSheetVisibility)
                             }
-                            contactActionsModalBottomSheetState.contactInfo?.let { contactInfo ->
-                                event(MainEvent.DeleteContact(contactInfo))
+                            contactActionsModalBottomSheetState.apply {
+                                index?.let { index ->
+                                    contactInfo?.let { contactInfo ->
+                                        event(MainEvent.DeleteContact(index, contactInfo))
+                                    }
+                                }
                             }
                         } else {
                             event(MainEvent.Permissions.UpdateWriteContactsPermissionRationaleAlertDialog(ContactAction.DELETE))
@@ -262,7 +271,7 @@ fun MainScreen(
                         onContactClick = { contactInfo ->
                             onContactInfoClicked(contactInfo)
                         },
-                        onLongContactClick = { contactInfo ->
+                        onLongContactClick = { index, contactInfo ->
 
                         }
                     )
@@ -317,9 +326,9 @@ fun MainScreen(
                     onContactClick = { contactInfo ->
                         onContactInfoClicked(contactInfo)
                     },
-                    onLongContactClick = { contactInfo ->
+                    onLongContactClick = { index, contactInfo ->
                         event(MainEvent.UpdateModalBottomSheetVisibility)
-                        event(MainEvent.UpdateModalBottomSheetContactInfo(contactInfo))
+                        event(MainEvent.UpdateModalBottomSheetContactInfo(index, contactInfo))
                     }
                 )
             }
