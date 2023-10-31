@@ -58,6 +58,7 @@ import com.mycontacts.utils.Constants.writeContactsPermissionGranted
 import com.mycontacts.utils.ContactAction
 import com.mycontacts.utils.ContactOrder
 import com.mycontacts.utils.ContactOrderType
+import com.mycontacts.utils.ContactsMethod
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -133,17 +134,19 @@ fun MainScreen(
     }
 
     LaunchedEffect(key1 = Unit) {
-        deleteContactResult.collect { triple ->
+        deleteContactResult.collect { deleteContactResult ->
             val snackbarResult = snackbarHostState.showSnackbar(
-                message = triple.first,
-                actionLabel = if (triple.first == deleteContactSuccessful) deleteContactUndo else null,
+                message = deleteContactResult.result,
+                actionLabel = if (deleteContactResult.result == deleteContactSuccessful) deleteContactUndo else null,
                 duration = SnackbarDuration.Long
             )
             if (snackbarResult == SnackbarResult.ActionPerformed) {
-                triple.apply {
-                    second?.let { index ->
-                        third?.let { contactInfo ->
-                            event(MainEvent.RestoreContact(index, contactInfo))
+                deleteContactResult.apply {
+                    contactsMethod?.let { contactsMethod ->
+                        contactInfoIndex?.let { index ->
+                            contactInfo?.let { contactInfo ->
+                                event(MainEvent.RestoreContact(contactsMethod, index, contactInfo))
+                            }
                         }
                     }
                 }
@@ -174,7 +177,7 @@ fun MainScreen(
         ModalBottomSheet(
             onDismissRequest = {
                 event(MainEvent.UpdateModalBottomSheetVisibility)
-                event(MainEvent.UpdateModalBottomSheetContactInfo(null, null))
+                event(MainEvent.UpdateModalBottomSheetContactInfo(null, null, null))
             },
             sheetState = modalBottomSheetState,
             content = {
@@ -205,7 +208,9 @@ fun MainScreen(
                             contactActionsModalBottomSheetState.apply {
                                 index?.let { index ->
                                     contactInfo?.let { contactInfo ->
-                                        event(MainEvent.DeleteContact(index, contactInfo))
+                                        contactsMethod?.let { contactsMethod ->
+                                            event(MainEvent.DeleteContact(contactsMethod, index, contactInfo))
+                                        }
                                     }
                                 }
                             }
@@ -272,7 +277,8 @@ fun MainScreen(
                             onContactInfoClicked(contactInfo)
                         },
                         onLongContactClick = { index, contactInfo ->
-
+                            event(MainEvent.UpdateModalBottomSheetVisibility)
+                            event(MainEvent.UpdateModalBottomSheetContactInfo(ContactsMethod.SEARCH, index, contactInfo))
                         }
                     )
                 }
@@ -322,13 +328,13 @@ fun MainScreen(
                         .fillMaxWidth()
                         .weight(1f),
                     lazyListState = lazyListState,
-                    contacts = contactsState.contacts,
+                    contactsMap = contactsState.contacts,
                     onContactClick = { contactInfo ->
                         onContactInfoClicked(contactInfo)
                     },
                     onLongContactClick = { index, contactInfo ->
                         event(MainEvent.UpdateModalBottomSheetVisibility)
-                        event(MainEvent.UpdateModalBottomSheetContactInfo(index, contactInfo))
+                        event(MainEvent.UpdateModalBottomSheetContactInfo(ContactsMethod.GENERAL, index, contactInfo))
                     }
                 )
             }

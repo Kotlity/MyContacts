@@ -13,6 +13,7 @@ import com.mycontacts.utils.Constants.emptyContactsErrorMessage
 import com.mycontacts.utils.Constants.searchDelay
 import com.mycontacts.utils.ContactOrder
 import com.mycontacts.utils.ContactOrderType
+import com.mycontacts.utils.ContactsMethod
 import com.mycontacts.utils.Resources
 import com.mycontacts.utils.getColumnIndex
 import com.mycontacts.utils.retrieveBitmap
@@ -30,7 +31,7 @@ class MainImplementation: Main {
         return flow {
             emit(Resources.Loading())
 
-            val result = retrieveContacts(contentResolver, RetrieveContactsMethod.GENERAL, contactOrder)
+            val result = retrieveContacts(contentResolver, ContactsMethod.GENERAL, contactOrder)
 
             if (result.isEmpty()) emit(Resources.Error(emptyContactsErrorMessage))
             else emit(Resources.Success(result))
@@ -43,7 +44,7 @@ class MainImplementation: Main {
 
             delay(searchDelay)
 
-            val searchResult = retrieveContacts(contentResolver, RetrieveContactsMethod.SEARCH, searchContactOrder, searchQuery)
+            val searchResult = retrieveContacts(contentResolver, ContactsMethod.SEARCH, searchContactOrder, searchQuery)
 
             if (searchResult.isEmpty()) emit(Resources.Error(contactsNotFound))
             else emit(Resources.Success(searchResult))
@@ -133,9 +134,9 @@ class MainImplementation: Main {
         }
     }
 
-    private fun retrieveContacts(contentResolver: ContentResolver, retrieveContactsMethod: RetrieveContactsMethod, contactOrder: ContactOrder, searchQuery: String? = null): List<ContactInfo> {
-        return when(retrieveContactsMethod) {
-            RetrieveContactsMethod.GENERAL -> {
+    private fun retrieveContacts(contentResolver: ContentResolver, contactsMethod: ContactsMethod, contactOrder: ContactOrder, searchQuery: String? = null): List<ContactInfo> {
+        return when(contactsMethod) {
+            ContactsMethod.GENERAL -> {
                 var generalContactInfoList = mutableListOf<ContactInfo>()
 
                 contentResolver.query(
@@ -187,7 +188,7 @@ class MainImplementation: Main {
                 }
                 generalContactInfoList
             }
-            RetrieveContactsMethod.SEARCH -> {
+            ContactsMethod.SEARCH -> {
                 var searchContactInfoList = mutableListOf<ContactInfo>()
 
                 contentResolver.query(
@@ -251,8 +252,4 @@ class MainImplementation: Main {
         return finalList
     }
 
-}
-
-private enum class RetrieveContactsMethod {
-    GENERAL, SEARCH
 }

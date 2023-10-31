@@ -3,6 +3,7 @@ package com.mycontacts.presentation.main.events
 import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.utils.ContactAction
 import com.mycontacts.utils.ContactOrder
+import com.mycontacts.utils.ContactsMethod
 
 sealed class MainEvent {
 
@@ -16,13 +17,13 @@ sealed class MainEvent {
     data class OnMainViewModelInitializing(val permissionToAccessAllFiles: Boolean, val permissionToReadContacts: Boolean, val permissionToWriteContacts: Boolean): MainEvent()
     data class GetAllContacts(val contactOrder: ContactOrder): MainEvent()
     data class SearchContact(val searchQuery: String, val searchContactOrder: ContactOrder): MainEvent()
-    data class DeleteContact(val index: Int, val contactInfo: ContactInfo): MainEvent()
-    data class RestoreContact(val index: Int, val contactInfo: ContactInfo): MainEvent()
+    data class DeleteContact(val contactsMethod: ContactsMethod, val index: Int, val contactInfo: ContactInfo): MainEvent()
+    data class RestoreContact(val contactsMethod: ContactsMethod, val index: Int, val contactInfo: ContactInfo): MainEvent()
     data class UpdateSearchDropdownMenuState(val searchDropdownMenuVisibility: Boolean): MainEvent()
     data class OnSearchContactOrderClick(val searchQuery: String, val searchContactOrder: ContactOrder): MainEvent()
     data class UpdateSearchBarState(val isShouldShow: Boolean): MainEvent()
     data class UpdateContactOrderSectionVisibility(val isSectionVisible: Boolean): MainEvent()
-    data class UpdateModalBottomSheetContactInfo(val index: Int?, val contactInfo: ContactInfo?): MainEvent()
+    data class UpdateModalBottomSheetContactInfo(val contactsMethod: ContactsMethod?, val index: Int?, val contactInfo: ContactInfo?): MainEvent()
     data class UpdateWriteContactsPermissionResult(val isGranted: Boolean): MainEvent()
     object ClearSearchQuery: MainEvent()
     object UpdateModalBottomSheetVisibility: MainEvent()

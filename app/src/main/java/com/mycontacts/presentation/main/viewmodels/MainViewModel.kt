@@ -12,14 +12,17 @@ import com.mycontacts.domain.main.Main
 import com.mycontacts.presentation.main.events.MainEvent
 import com.mycontacts.presentation.main.states.ContactsSearchState
 import com.mycontacts.presentation.main.states.ContactsState
+import com.mycontacts.presentation.main.states.DeleteContactResult
 import com.mycontacts.presentation.main.states.ModalBottomSheetState
 import com.mycontacts.presentation.main.states.PermissionsForMainScreenState
 import com.mycontacts.presentation.main.states.WriteContactsAlertDialogState
 import com.mycontacts.utils.Constants.contactsNotFound
+import com.mycontacts.utils.Constants.deleteContactNotSuccessful
 import com.mycontacts.utils.Constants.deleteContactSuccessful
 import com.mycontacts.utils.ContactAction
 import com.mycontacts.utils.ContactListAction
 import com.mycontacts.utils.ContactOrder
+import com.mycontacts.utils.ContactsMethod
 import com.mycontacts.utils.Resources
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -51,7 +54,7 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
     var writeContactsPermissionResult = Channel<Boolean>()
         private set
 
-    var deleteContactResult = Channel<Triple<String, Int?, ContactInfo?>>()
+    var deleteContactResult = Channel<DeleteContactResult>()
         private set
 
     var contactsOrderSectionVisibleState by derivedStateOf { mutableStateOf(true) }.value
@@ -102,13 +105,13 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
                 updateContactOrderSectionVisibility(mainEvent.isSectionVisible)
             }
             is MainEvent.DeleteContact -> {
-                deleteContact(contentResolver, mainEvent.index, mainEvent.contactInfo)
+                deleteContact(contentResolver, mainEvent.contactsMethod, mainEvent.index, mainEvent.contactInfo)
             }
             is MainEvent.RestoreContact -> {
-                restoreContact(contentResolver, mainEvent.index, mainEvent.contactInfo)
+                restoreContact(contentResolver, mainEvent.contactsMethod, mainEvent.index, mainEvent.contactInfo)
             }
             is MainEvent.UpdateModalBottomSheetContactInfo -> {
-                updateModalBottomSheetContactInfo(mainEvent.index, mainEvent.contactInfo)
+                updateModalBottomSheetContactInfo(mainEvent.contactsMethod, mainEvent.index, mainEvent.contactInfo)
             }
             is MainEvent.UpdateWriteContactsPermissionResult -> {
                 updateWriteContactsPermissionResult(mainEvent.isGranted)
@@ -135,15 +138,15 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         contactsJob = main.getAllContacts(contentResolver, contactOrder).onEach { result ->
             contactsState = when (result) {
                 is Resources.Success -> {
-                    contactsState.copy(isLoading = false, errorMessage = "", contacts = result.data ?: emptyList(), contactOrder = contactOrder)
+                    contactsState.copy(isLoading = false, errorMessage = "", contacts = result.data?.groupBy { contactInfo -> contactInfo.firstName.first() } ?: emptyMap(), contactOrder = contactOrder)
                 }
 
                 is Resources.Error -> {
-                    contactsState.copy(isLoading = false, errorMessage = result.errorMessage ?: "", contacts = emptyList(), contactOrder = contactOrder)
+                    contactsState.copy(isLoading = false, errorMessage = result.errorMessage ?: "", contacts = emptyMap(), contactOrder = contactOrder)
                 }
 
                 is Resources.Loading -> {
-                    contactsState.copy(isLoading = true, errorMessage = "", contacts = emptyList(), contactOrder = contactOrder)
+                    contactsState.copy(isLoading = true, errorMessage = "", contacts = emptyMap(), contactOrder = contactOrder)
                 }
             }
         }.launchIn(viewModelScope)
@@ -171,32 +174,59 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         }
     }
 
-    private fun deleteContact(contentResolver: ContentResolver, index: Int, contactInfo: ContactInfo) {
+    private fun deleteContact(contentResolver: ContentResolver, contactsMethod: ContactsMethod, index: Int, contactInfo: ContactInfo) {
         viewModelScope.launch {
-            val result = main.deleteContact(contentResolver, contactInfo)
-            if (result){
-                deleteContactResult.send(Triple(deleteContactSuccessful, index, contactInfo))
-                contactListAction(ContactListAction.REMOVE, contactInfo)
-            }
-            else deleteContactResult.send(Triple(deleteContactSuccessful, null, null))
+            val isSuccessful = main.deleteContact(contentResolver, contactInfo)
+            if (isSuccessful){
+                deleteContactResult.send(DeleteContactResult(deleteContactSuccessful, contactsMethod, index, contactInfo))
+                contactListAction(contactsMethod, ContactListAction.REMOVE, contactInfo)
+            } else deleteContactResult.send(DeleteContactResult(deleteContactNotSuccessful, null, null, null))
         }
     }
 
-    private fun restoreContact(contentResolver: ContentResolver, index: Int, contactInfo: ContactInfo) {
+    private fun restoreContact(contentResolver: ContentResolver, contactsMethod: ContactsMethod, index: Int, contactInfo: ContactInfo) {
         viewModelScope.launch {
             main.restoreContact(contentResolver, contactInfo)?.let { restoredContact ->
-                contactListAction(ContactListAction.RESTORE, restoredContact, index)
+                contactListAction(contactsMethod, ContactListAction.RESTORE, restoredContact, index)
             }
         }
     }
 
-    private fun contactListAction(contactListAction: ContactListAction, contactInfo: ContactInfo, index: Int? = null) {
-        val updatedContactsList = contactsState.contacts.toMutableList()
-        when(contactListAction) {
-            ContactListAction.REMOVE -> updatedContactsList.remove(contactInfo)
-            ContactListAction.RESTORE -> updatedContactsList.add(index!!, contactInfo)
+    private fun contactListAction(contactsMethod: ContactsMethod, contactListAction: ContactListAction, contactInfo: ContactInfo, index: Int? = null) {
+        when(contactsMethod) {
+            ContactsMethod.GENERAL -> {
+                val key = contactInfo.firstName.first()
+                val mutableContactsMap = contactsState.contacts.mapValues { map -> map.value.toMutableList() }.toMutableMap()
+
+                when(contactListAction) {
+                    ContactListAction.REMOVE -> {
+                        val updatedContactsByKey = mutableContactsMap.getOrDefault(key, mutableListOf()).apply { remove(contactInfo) }
+                        mutableContactsMap[key] = updatedContactsByKey
+                        if (updatedContactsByKey.isEmpty()) mutableContactsMap.remove(key)
+                    }
+                    ContactListAction.RESTORE -> {
+                        if (mutableContactsMap.containsKey(key)) {
+                            val updatedContactsByKey = mutableContactsMap.getOrDefault(key, mutableListOf()).apply { add(index!!, contactInfo) }
+                            mutableContactsMap[key] = updatedContactsByKey
+                        } else mutableContactsMap[key] = mutableListOf(contactInfo)
+                    }
+                }
+
+                val updatedContactsMap = mutableContactsMap.mapValues { map -> map.value.toList() }
+                contactsState = contactsState.copy(contacts = updatedContactsMap)
+            }
+            ContactsMethod.SEARCH -> {
+                val mutableSearchContactsList = contactsSearchState.contacts.toMutableList()
+
+                when(contactListAction) {
+                    ContactListAction.REMOVE -> mutableSearchContactsList.remove(contactInfo)
+                    ContactListAction.RESTORE -> mutableSearchContactsList.add(index!!, contactInfo)
+                }
+
+                val updatedSearchContactsList = mutableSearchContactsList.toList()
+                contactsSearchState = contactsSearchState.copy(contacts = updatedSearchContactsList)
+            }
         }
-        contactsState = contactsState.copy(contacts = updatedContactsList.toList())
     }
 
     private fun updateIsUserHasPermissionToAccessAllFiles(isUserHasPermissionToAccessAllFiles: Boolean) {
@@ -223,8 +253,8 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         modalBottomSheetState = modalBottomSheetState.copy(isShouldShow = !modalBottomSheetState.isShouldShow)
     }
 
-    private fun updateModalBottomSheetContactInfo(index: Int?, contactInfo: ContactInfo?) {
-        modalBottomSheetState = modalBottomSheetState.copy(index = index, contactInfo = contactInfo)
+    private fun updateModalBottomSheetContactInfo(contactsMethod: ContactsMethod?, index: Int?, contactInfo: ContactInfo?) {
+        modalBottomSheetState = modalBottomSheetState.copy(contactsMethod = contactsMethod, index = index, contactInfo = contactInfo)
     }
 
     private fun updateWriteContactsPermissionResult(isGranted: Boolean) {

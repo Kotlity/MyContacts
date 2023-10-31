@@ -7,6 +7,6 @@ import com.mycontacts.utils.ContactOrderType
 data class ContactsState(
     val isLoading: Boolean = false,
     val errorMessage: String = "",
-    val contacts: List<ContactInfo> = emptyList(),
+    val contacts: Map<Char, List<ContactInfo>> = emptyMap(),
     val contactOrder: ContactOrder = ContactOrder.TimeStamp(ContactOrderType.Descending)
 )
