@@ -5,10 +5,12 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 
 object Constants {
 
-    const val third = 3
-    const val second = 2
-    const val pagerImageSmallSizeInPixels = 512
     const val zero = 0
+    const val second = 2
+    const val third = 3
+    const val pagerImageSmallSizeInPixels = 512
+    const val _1000 = 1000
+
     const val splashDelay = 500L
     const val searchDelay = 300L
 
@@ -34,6 +36,7 @@ object Constants {
     const val deleteContactSuccessful = "The contact was successfully deleted"
     const val deleteContactNotSuccessful = "Sorry, an unknown error occurred"
     const val deleteContactUndo = "Undo"
+    const val dialPart = "tel"
 
     const val datePattern = "dd:MM:yyyy HH:mm:ss"
 

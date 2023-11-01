@@ -13,6 +13,7 @@ import com.mycontacts.presentation.main.events.MainEvent
 import com.mycontacts.presentation.main.states.ContactsSearchState
 import com.mycontacts.presentation.main.states.ContactsState
 import com.mycontacts.presentation.main.states.DeleteContactResult
+import com.mycontacts.presentation.main.states.DialAlertDialogState
 import com.mycontacts.presentation.main.states.ModalBottomSheetState
 import com.mycontacts.presentation.main.states.PermissionsForMainScreenState
 import com.mycontacts.presentation.main.states.WriteContactsAlertDialogState
@@ -49,6 +50,9 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         private set
 
     var writeContactsPermissionRationaleAlertDialog by mutableStateOf(WriteContactsAlertDialogState())
+        private set
+
+    var dialAlertDialog by mutableStateOf(DialAlertDialogState())
         private set
 
     var writeContactsPermissionResult = Channel<Boolean>()
@@ -115,6 +119,9 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
             }
             is MainEvent.UpdateWriteContactsPermissionResult -> {
                 updateWriteContactsPermissionResult(mainEvent.isGranted)
+            }
+            is MainEvent.UpdateDialAlertDialog -> {
+                updateDialAlertDialogState(mainEvent.contactInfo)
             }
             MainEvent.ClearSearchQuery -> {
                 clearSearchQuery()
@@ -286,4 +293,8 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
 
     private fun checkIfTheSameContactOrderClicked(changingContactOrder: ContactOrder) = contactsState.contactOrder::class == changingContactOrder &&
             contactsState.contactOrder.contactOrderType == changingContactOrder.contactOrderType
+
+    private fun updateDialAlertDialogState(dialContactInfo: ContactInfo?) {
+        dialAlertDialog = dialAlertDialog.copy(isShouldShow = !dialAlertDialog.isShouldShow, dialContactInfo = dialContactInfo)
+    }
 }

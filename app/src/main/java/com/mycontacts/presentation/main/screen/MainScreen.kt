@@ -42,6 +42,7 @@ import com.mycontacts.presentation.main.composables.ContactsOrderSection
 import com.mycontacts.presentation.main.events.MainEvent
 import com.mycontacts.presentation.main.composables.CustomProgressBar
 import com.mycontacts.presentation.main.composables.CustomSearchBar
+import com.mycontacts.presentation.main.composables.DialAlertDialog
 import com.mycontacts.presentation.main.composables.EmptyContacts
 import com.mycontacts.presentation.main.composables.PermissionToAllFilesAlertDialog
 import com.mycontacts.presentation.main.composables.RadioButtonsSection
@@ -51,6 +52,7 @@ import com.mycontacts.presentation.main.viewmodels.MainViewModel
 import com.mycontacts.utils.Constants.contactsNotFound
 import com.mycontacts.utils.Constants.deleteContactSuccessful
 import com.mycontacts.utils.Constants.deleteContactUndo
+import com.mycontacts.utils.Constants.dialPart
 import com.mycontacts.utils.Constants.dismissSnackbarActionLabel
 import com.mycontacts.utils.Constants.onDismissButtonClicked
 import com.mycontacts.utils.Constants.writeContactsPermissionNotGranted
@@ -69,7 +71,7 @@ import kotlinx.coroutines.launch
 fun MainScreen(
     mainViewModel: MainViewModel,
     event: (MainEvent) -> Unit,
-    onContactInfoClicked: (ContactInfo) -> Unit
+    editContactInfo: (ContactInfo) -> Unit
 ) {
     val isUserHasPermissionsForMainScreen = mainViewModel.mainScreenPermissionsState
     val contactsState = mainViewModel.contactsState
@@ -77,6 +79,7 @@ fun MainScreen(
     val contactsOrderSectionVisibleState = mainViewModel.contactsOrderSectionVisibleState
     val contactActionsModalBottomSheetState = mainViewModel.modalBottomSheetState
     val writeContactsPermissionRationaleAlertDialogState = mainViewModel.writeContactsPermissionRationaleAlertDialog
+    val dialAlertDialog = mainViewModel.dialAlertDialog
     val writeContactsPermissionResult = mainViewModel.writeContactsPermissionResult.receiveAsFlow()
     val deleteContactResult = mainViewModel.deleteContactResult.receiveAsFlow()
 
@@ -191,6 +194,9 @@ fun MainScreen(
                                 modalBottomSheetState.hide()
                                 event(MainEvent.UpdateModalBottomSheetVisibility)
                             }
+                            contactActionsModalBottomSheetState.contactInfo?.let { contactInfo ->
+                                editContactInfo(contactInfo)
+                            }
                         } else {
                             event(MainEvent.Permissions.UpdateWriteContactsPermissionRationaleAlertDialog(ContactAction.EDIT))
                             coroutineScope.launch {
@@ -240,6 +246,25 @@ fun MainScreen(
         )
     }
 
+    dialAlertDialog.apply {
+        if (isShouldShow) {
+            dialContactInfo?.let { dialContactInfo ->
+                DialAlertDialog(
+                    contactInfo = dialContactInfo,
+                    onConfirmClick = {
+                        event(MainEvent.UpdateDialAlertDialog(null))
+                        Intent(Intent.ACTION_DIAL).apply {
+                            data = Uri.fromParts(dialPart, dialContactInfo.phoneNumber, null)
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            context.startActivity(this)
+                        }
+                    },
+                    onDismissClick = { event(MainEvent.UpdateDialAlertDialog(null)) }
+                )
+            }
+        }
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
@@ -274,7 +299,7 @@ fun MainScreen(
                             .weight(1f),
                         contacts = contactsSearchState.contacts,
                         onContactClick = { contactInfo ->
-                            onContactInfoClicked(contactInfo)
+                            event(MainEvent.UpdateDialAlertDialog(contactInfo))
                         },
                         onLongContactClick = { index, contactInfo ->
                             event(MainEvent.UpdateModalBottomSheetVisibility)
@@ -330,7 +355,7 @@ fun MainScreen(
                     lazyListState = lazyListState,
                     contactsMap = contactsState.contacts,
                     onContactClick = { contactInfo ->
-                        onContactInfoClicked(contactInfo)
+                        event(MainEvent.UpdateDialAlertDialog(contactInfo = contactInfo))
                     },
                     onLongContactClick = { index, contactInfo ->
                         event(MainEvent.UpdateModalBottomSheetVisibility)

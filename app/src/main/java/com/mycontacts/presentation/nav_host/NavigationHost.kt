@@ -65,9 +65,7 @@ fun NavigationHost(
                     event = { mainEvent ->
                         mainViewModel.onEvent(contentResolver = contentResolver, mainEvent)
                     },
-                    onContactInfoClicked = { contactInfo ->
-//                        backStackEntry.savedStateHandle.set()
-                    }
+                    editContactInfo = {  }
                 )
             }
             composable(ScreenRoutes.Settings.route) {

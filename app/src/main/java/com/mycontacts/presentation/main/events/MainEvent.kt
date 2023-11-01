@@ -25,6 +25,7 @@ sealed class MainEvent {
     data class UpdateContactOrderSectionVisibility(val isSectionVisible: Boolean): MainEvent()
     data class UpdateModalBottomSheetContactInfo(val contactsMethod: ContactsMethod?, val index: Int?, val contactInfo: ContactInfo?): MainEvent()
     data class UpdateWriteContactsPermissionResult(val isGranted: Boolean): MainEvent()
+    data class UpdateDialAlertDialog(val contactInfo: ContactInfo?): MainEvent()
     object ClearSearchQuery: MainEvent()
     object UpdateModalBottomSheetVisibility: MainEvent()
 }

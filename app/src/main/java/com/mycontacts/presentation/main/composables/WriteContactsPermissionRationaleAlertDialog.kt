@@ -6,7 +6,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Start
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,13 +31,13 @@ fun WriteContactsPermissionRationaleAlertDialog(
     AlertDialog(
         onDismissRequest = {},
         confirmButton = {
-            WriteContactsButton(
+            AlertDialogButton(
                 text = stringResource(id = R.string.confirm),
                 onClick = onConfirmButtonClick
             )
         },
         dismissButton = {
-            WriteContactsButton(
+            AlertDialogButton(
                 text = stringResource(id = R.string.dismiss),
                 onClick = onDismissButtonClick
             )
@@ -70,17 +69,4 @@ fun WriteContactsPermissionRationaleAlertDialog(
         },
         properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
     )
-}
-
-@Composable
-private fun WriteContactsButton(
-    text: String,
-    onClick: () -> Unit
-) {
-    TextButton(onClick = onClick) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium.copy(fontSize = _18sp)
-        )
-    }
 }
