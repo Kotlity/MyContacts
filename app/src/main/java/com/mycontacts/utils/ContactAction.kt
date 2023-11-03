@@ -1,5 +1,5 @@
 package com.mycontacts.utils
 
 enum class ContactAction {
-    INITIAL, EDIT, DELETE
+    INITIAL, EDIT, DELETE, DELETE_MULTIPLE
 }

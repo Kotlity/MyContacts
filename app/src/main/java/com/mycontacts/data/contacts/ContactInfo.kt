@@ -11,5 +11,6 @@ data class ContactInfo(
     val firstName: String,
     val lastName: String? = null,
     val phoneNumber: String,
-    val timeStamp: Long
+    val timeStamp: Long,
+    val isSelected: Boolean = false
 ): Parcelable

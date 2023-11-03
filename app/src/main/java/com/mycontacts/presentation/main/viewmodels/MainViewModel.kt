@@ -25,6 +25,7 @@ import com.mycontacts.utils.ContactListAction
 import com.mycontacts.utils.ContactOrder
 import com.mycontacts.utils.ContactsMethod
 import com.mycontacts.utils.Resources
+import com.mycontacts.utils.StickyHeaderAction
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -62,6 +63,9 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         private set
 
     var contactsOrderSectionVisibleState by derivedStateOf { mutableStateOf(true) }.value
+        private set
+
+    var isSelectionGeneralModeActive by derivedStateOf { mutableStateOf(false) }.value
         private set
 
     private var contactsJob: Job? = null
@@ -122,6 +126,15 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
             }
             is MainEvent.UpdateDialAlertDialog -> {
                 updateDialAlertDialogState(mainEvent.contactInfo)
+            }
+            is MainEvent.UpdateSelectionGeneralMode -> {
+                updateSelectionGeneralMode(mainEvent.selectionGeneralMode)
+            }
+            is MainEvent.UpdateIsContactSelectedFieldByClickOnContactInfo -> {
+                updateIsContactSelectedFieldByClickOnContactInfo(mainEvent.header, mainEvent.index)
+            }
+            is MainEvent.UpdateSelectedContactsByItsHeader -> {
+                updateSelectedContactsByItsHeader(mainEvent.header, mainEvent.stickyHeaderAction)
             }
             MainEvent.ClearSearchQuery -> {
                 clearSearchQuery()
@@ -296,5 +309,41 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
 
     private fun updateDialAlertDialogState(dialContactInfo: ContactInfo?) {
         dialAlertDialog = dialAlertDialog.copy(isShouldShow = !dialAlertDialog.isShouldShow, dialContactInfo = dialContactInfo)
+    }
+
+    private fun updateSelectionGeneralMode(selectionGeneralMode: Boolean) {
+        isSelectionGeneralModeActive = selectionGeneralMode
+    }
+
+    private fun updateIsContactSelectedFieldByClickOnContactInfo(header: Char, index: Int) {
+        val mutableContactsMap = contactsState.contacts.mapValues { map -> map.value.toMutableList() }.toMutableMap()
+
+        mutableContactsMap[header] = contactsState.contacts[header]?.mapIndexed { i, contactInfo ->
+            if (index == i) contactInfo.copy(isSelected = !contactInfo.isSelected)
+            else contactInfo
+        }?.toMutableList() ?: mutableListOf()
+        val updatedContactsMap = mutableContactsMap.mapValues { map -> map.value.toList() }
+
+        contactsState = contactsState.copy(contacts = updatedContactsMap)
+    }
+
+    private fun updateSelectedContactsByItsHeader(header: Char, stickyHeaderAction: StickyHeaderAction) {
+        val mutableContactsMap = contactsState.contacts.mapValues { map -> map.value.toMutableList() }.toMutableMap()
+
+        when(stickyHeaderAction) {
+            StickyHeaderAction.SELECT_ALL -> {
+                mutableContactsMap[header] = mutableContactsMap[header]?.map { contactInfo ->
+                    contactInfo.copy(isSelected = true)
+                }?.toMutableList() ?: mutableListOf()
+            }
+            StickyHeaderAction.UNSELECT_ALL -> {
+                mutableContactsMap[header] = mutableContactsMap[header]?.map { contactInfo ->
+                    contactInfo.copy(isSelected = false)
+                }?.toMutableList() ?: mutableListOf()
+            }
+        }
+        val updatedContactsMap = mutableContactsMap.mapValues { map -> map.value.toList() }
+
+        contactsState = contactsState.copy(contacts = updatedContactsMap)
     }
 }

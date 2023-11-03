@@ -7,13 +7,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Mouse
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -26,7 +30,8 @@ import com.mycontacts.utils.Constants._20sp
 fun ContactActionsModalBottomSheet(
     modifier: Modifier = Modifier,
     onEditContactClick: () -> Unit,
-    onDeleteContactClick: () -> Unit
+    onDeleteContactClick: () -> Unit,
+    onMultipleDeleteClick: () -> Unit,
 ) {
     Column(
         modifier = modifier,
@@ -50,19 +55,27 @@ fun ContactActionsModalBottomSheet(
             imageVector = Icons.Default.Delete,
             text = stringResource(id = R.string.contactActionsBottomSheetDeleteContact)
         )
+        ContactActionButton(
+            backgroundColor = MaterialTheme.colorScheme.error,
+            onClick = onMultipleDeleteClick,
+            imageVector = Icons.Default.Mouse,
+            text = stringResource(id = R.string.contactActionsBottomSheetSelectionMode)
+        )
     }
 }
 
 @Composable
 private fun ContactActionButton(
-    onClick: () -> Unit,
+    backgroundColor: Color = MaterialTheme.colorScheme.primary,
     imageVector: ImageVector,
-    text: String
+    text: String,
+    onClick: () -> Unit,
 ) {
     Button(
         modifier = Modifier.fillMaxWidth(0.6f),
         onClick = onClick,
-        shape = RoundedCornerShape(dimensionResource(id = R.dimen._13dp))
+        shape = RoundedCornerShape(dimensionResource(id = R.dimen._13dp)),
+        colors = ButtonDefaults.buttonColors(containerColor = backgroundColor)
     ) {
         Icon(
             imageVector = imageVector,

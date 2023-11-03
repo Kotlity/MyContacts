@@ -19,4 +19,6 @@
     <color name="contactOrderIconPressed">#33ECEC</color>
     <color name="contactOrderIconNotPressed">#B86363</color>
     <color name="green">#8BC34A</color>
+    <color name="selectedContactInfo">#C6B24B</color>
+    <color name="unselectedContactInfo">#615E5E</color>
 </resources>

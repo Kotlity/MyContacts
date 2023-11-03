@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
@@ -49,6 +50,10 @@ fun ContactItem(
                 onClick = onContactClick
             ),
         shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = if (contactInfo.isSelected) colorResource(id = R.color.selectedContactInfo)
+            else colorResource(id = R.color.unselectedContactInfo)
+        ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = dimensionResource(id = R.dimen._0dp),
             pressedElevation = dimensionResource(id = R.dimen._10dp)

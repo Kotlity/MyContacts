@@ -4,6 +4,7 @@ package com.mycontacts.presentation.main.composables
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,6 +13,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import com.mycontacts.R
 import com.mycontacts.data.contacts.ContactInfo
@@ -20,9 +22,11 @@ import com.mycontacts.data.contacts.ContactInfo
 fun ContactGeneralList(
     modifier: Modifier,
     lazyListState: LazyListState,
+    isAtLeastOneContactInfoSelected: (Char) -> Boolean,
     contactsMap: Map<Char, List<ContactInfo>>,
-    onContactClick: (ContactInfo) -> Unit,
-    onLongContactClick: (Int, ContactInfo) -> Unit
+    onContactClick: (Int, ContactInfo) -> Unit,
+    onLongContactClick: (Int, ContactInfo) -> Unit,
+    onStickyHeaderClick: (Char) -> Unit
 ) {
     LazyColumn(
         modifier = modifier,
@@ -33,8 +37,14 @@ fun ContactGeneralList(
                 CustomStickyHeader(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .padding(dimensionResource(id = R.dimen._10dp)),
+                        .background(
+                            if (isAtLeastOneContactInfoSelected(header)) colorResource(id = R.color.dismissButton)
+                            else colorResource(id = R.color.teal_700)
+                        )
+                        .padding(dimensionResource(id = R.dimen._10dp))
+                        .clickable {
+                            onStickyHeaderClick(header)
+                        },
                     header = header
                 )
             }
@@ -42,7 +52,7 @@ fun ContactGeneralList(
                 ContactItem(
                     contactInfo = contact,
                     onContactClick = {
-                        onContactClick(contact)
+                        onContactClick(index, contact)
                     },
                     onLongContactClick = {
                         onLongContactClick(index, contact)

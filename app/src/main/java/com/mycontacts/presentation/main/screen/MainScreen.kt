@@ -2,7 +2,6 @@ package com.mycontacts.presentation.main.screen
 
 import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -10,6 +9,8 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
-import androidx.core.content.ContextCompat
 import com.mycontacts.R
 import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.presentation.main.composables.ContactActionsModalBottomSheet
@@ -47,6 +47,7 @@ import com.mycontacts.presentation.main.composables.EmptyContacts
 import com.mycontacts.presentation.main.composables.PermissionToAllFilesAlertDialog
 import com.mycontacts.presentation.main.composables.RadioButtonsSection
 import com.mycontacts.presentation.main.composables.SearchContactsFilteringSection
+import com.mycontacts.presentation.main.composables.SelectedContactsInfoHeader
 import com.mycontacts.presentation.main.composables.WriteContactsPermissionRationaleAlertDialog
 import com.mycontacts.presentation.main.viewmodels.MainViewModel
 import com.mycontacts.utils.Constants.contactsNotFound
@@ -61,6 +62,9 @@ import com.mycontacts.utils.ContactAction
 import com.mycontacts.utils.ContactOrder
 import com.mycontacts.utils.ContactOrderType
 import com.mycontacts.utils.ContactsMethod
+import com.mycontacts.utils.StickyHeaderAction
+import com.mycontacts.utils.hideBottomSheet
+import com.mycontacts.utils.isAppHasPermissionToWriteContacts
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -73,13 +77,16 @@ fun MainScreen(
     event: (MainEvent) -> Unit,
     editContactInfo: (ContactInfo) -> Unit
 ) {
-    val isUserHasPermissionsForMainScreen = mainViewModel.mainScreenPermissionsState
+    val isUserHasPermissionsForMainScreenState = mainViewModel.mainScreenPermissionsState
     val contactsState = mainViewModel.contactsState
     val contactsSearchState = mainViewModel.contactsSearchState
     val contactsOrderSectionVisibleState = mainViewModel.contactsOrderSectionVisibleState
     val contactActionsModalBottomSheetState = mainViewModel.modalBottomSheetState
     val writeContactsPermissionRationaleAlertDialogState = mainViewModel.writeContactsPermissionRationaleAlertDialog
     val dialAlertDialog = mainViewModel.dialAlertDialog
+    val isSelectionGeneralModeActiveState = mainViewModel.isSelectionGeneralModeActive
+    val selectedContacts = contactsState.contacts.values.flatten().filter { contactInfo -> contactInfo.isSelected }
+
     val writeContactsPermissionResult = mainViewModel.writeContactsPermissionResult.receiveAsFlow()
     val deleteContactResult = mainViewModel.deleteContactResult.receiveAsFlow()
 
@@ -109,22 +116,24 @@ fun MainScreen(
         event(MainEvent.UpdateWriteContactsPermissionResult(isGranted))
     }
 
-    LaunchedEffect(key1 = isUserHasPermissionsForMainScreen) {
-        if (isUserHasPermissionsForMainScreen.isUserHasPermissionToAccessAllFiles && !isUserHasPermissionsForMainScreen.isUserHasPermissionToReadContacts) {
+    LaunchedEffect(key1 = isUserHasPermissionsForMainScreenState) {
+        if (isUserHasPermissionsForMainScreenState.isUserHasPermissionToAccessAllFiles && !isUserHasPermissionsForMainScreenState.isUserHasPermissionToReadContacts) {
             permissionToReadContactsLauncher.launch(Manifest.permission.READ_CONTACTS)
         }
-        if (isUserHasPermissionsForMainScreen.isUserHasPermissionToAccessAllFiles && isUserHasPermissionsForMainScreen.isUserHasPermissionToReadContacts && contactsState.contacts.isEmpty()) {
+        if (isUserHasPermissionsForMainScreenState.isUserHasPermissionToAccessAllFiles && isUserHasPermissionsForMainScreenState.isUserHasPermissionToReadContacts && contactsState.contacts.isEmpty()) {
             event(MainEvent.GetAllContacts(ContactOrder.TimeStamp(ContactOrderType.Descending)))
         }
     }
 
-    LaunchedEffect(key1 = lazyListState) {
-        snapshotFlow { lazyListState.firstVisibleItemIndex }
-            .map { firstVisibleItemIndex -> firstVisibleItemIndex > 0 }
-            .distinctUntilChanged()
-            .collect { isScrolling ->
-                event(MainEvent.UpdateContactOrderSectionVisibility(!isScrolling))
-            }
+    if (!isSelectionGeneralModeActiveState) {
+        LaunchedEffect(key1 = lazyListState) {
+            snapshotFlow { lazyListState.firstVisibleItemIndex }
+                .map { firstVisibleItemIndex -> firstVisibleItemIndex > 0 }
+                .distinctUntilChanged()
+                .collect { isScrolling ->
+                    event(MainEvent.UpdateContactOrderSectionVisibility(!isScrolling))
+                }
+        }
     }
 
     LaunchedEffect(key1 = Unit) {
@@ -157,7 +166,13 @@ fun MainScreen(
         }
     }
 
-    if (!isUserHasPermissionsForMainScreen.isUserHasPermissionToAccessAllFiles) {
+    LaunchedEffect(key1 = selectedContacts.size) {
+        if (selectedContacts.isEmpty()) event(MainEvent.UpdateSelectionGeneralMode(false))
+        else event(MainEvent.UpdateSelectionGeneralMode(true))
+
+    }
+
+    if (!isUserHasPermissionsForMainScreenState.isUserHasPermissionToAccessAllFiles) {
         PermissionToAllFilesAlertDialog(
             onConfirmButtonClick = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -189,28 +204,17 @@ fun MainScreen(
                         .fillMaxWidth()
                         .padding(vertical = dimensionResource(id = R.dimen._20dp)),
                     onEditContactClick = {
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
-                            coroutineScope.launch {
-                                modalBottomSheetState.hide()
-                                event(MainEvent.UpdateModalBottomSheetVisibility)
-                            }
-                            contactActionsModalBottomSheetState.contactInfo?.let { contactInfo ->
-                                editContactInfo(contactInfo)
-                            }
+                        if (isAppHasPermissionToWriteContacts(context)) {
+                            coroutineScope.launch { hideBottomSheet(modalBottomSheetState, event) }
+                            contactActionsModalBottomSheetState.contactInfo?.let { contactInfo -> editContactInfo(contactInfo) }
                         } else {
                             event(MainEvent.Permissions.UpdateWriteContactsPermissionRationaleAlertDialog(ContactAction.EDIT))
-                            coroutineScope.launch {
-                                modalBottomSheetState.hide()
-                                event(MainEvent.UpdateModalBottomSheetVisibility)
-                            }
+                            coroutineScope.launch { hideBottomSheet(modalBottomSheetState, event) }
                         }
                     },
                     onDeleteContactClick = {
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
-                            coroutineScope.launch {
-                                modalBottomSheetState.hide()
-                                event(MainEvent.UpdateModalBottomSheetVisibility)
-                            }
+                        if (isAppHasPermissionToWriteContacts(context)) {
+                            coroutineScope.launch { hideBottomSheet(modalBottomSheetState, event) }
                             contactActionsModalBottomSheetState.apply {
                                 index?.let { index ->
                                     contactInfo?.let { contactInfo ->
@@ -222,9 +226,16 @@ fun MainScreen(
                             }
                         } else {
                             event(MainEvent.Permissions.UpdateWriteContactsPermissionRationaleAlertDialog(ContactAction.DELETE))
-                            coroutineScope.launch {
-                                modalBottomSheetState.hide()
-                                event(MainEvent.UpdateModalBottomSheetVisibility)
+                            coroutineScope.launch { hideBottomSheet(modalBottomSheetState, event) }
+                        }
+                    },
+                    onMultipleDeleteClick = {
+                        coroutineScope.launch { hideBottomSheet(modalBottomSheetState, event) }
+                        contactActionsModalBottomSheetState.apply {
+                            index?.let { index ->
+                                contactInfo?.let { contactInfo ->
+                                    event(MainEvent.UpdateIsContactSelectedFieldByClickOnContactInfo(contactInfo.firstName.first(), index))
+                                }
                             }
                         }
                     }
@@ -274,47 +285,51 @@ fun MainScreen(
                 .padding(paddingValues)
                 .fillMaxSize()
         ) {
-            CustomSearchBar(
-                contactsSearchState = contactsSearchState,
-                onQueryChangeEvent = { event(MainEvent.SearchContact(it, contactsSearchState.searchContactOrder)) },
-                onUpdateSearchBarEvent = { event(MainEvent.UpdateSearchBarState(it)) },
-                onClearSearchQueryEvent = { event(MainEvent.ClearSearchQuery) }
+            AnimatedVisibility(
+                visible = !isSelectionGeneralModeActiveState
             ) {
-                AnimatedVisibility(visible = contactsSearchState.isLoading) {
-                    CustomProgressBar(modifier = Modifier.fillMaxSize())
-                }
-                SearchContactsFilteringSection(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = dimensionResource(id = R.dimen._5dp)),
-                    isExpanded = contactsSearchState.isSearchDropdownMenuExpanded,
-                    currentSearchContactOrder = contactsSearchState.searchContactOrder,
-                    onSearchContactOrderClick = { event(MainEvent.OnSearchContactOrderClick(contactsSearchState.searchQuery, it)) } ,
-                    onUpdateDropdownMenuVisibility = { event(MainEvent.UpdateSearchDropdownMenuState(it)) }
-                )
-                if (contactsSearchState.contacts.isNotEmpty()) {
-                    ContactSearchList(
+                CustomSearchBar(
+                    contactsSearchState = contactsSearchState,
+                    onQueryChangeEvent = { event(MainEvent.SearchContact(it, contactsSearchState.searchContactOrder)) },
+                    onUpdateSearchBarEvent = { event(MainEvent.UpdateSearchBarState(it)) },
+                    onClearSearchQueryEvent = { event(MainEvent.ClearSearchQuery) }
+                ) {
+                    AnimatedVisibility(visible = contactsSearchState.isLoading) {
+                        CustomProgressBar(modifier = Modifier.fillMaxSize())
+                    }
+                    SearchContactsFilteringSection(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f),
-                        contacts = contactsSearchState.contacts,
-                        onContactClick = { contactInfo ->
-                            event(MainEvent.UpdateDialAlertDialog(contactInfo))
-                        },
-                        onLongContactClick = { index, contactInfo ->
-                            event(MainEvent.UpdateModalBottomSheetVisibility)
-                            event(MainEvent.UpdateModalBottomSheetContactInfo(ContactsMethod.SEARCH, index, contactInfo))
-                        }
+                            .padding(vertical = dimensionResource(id = R.dimen._5dp)),
+                        isExpanded = contactsSearchState.isSearchDropdownMenuExpanded,
+                        currentSearchContactOrder = contactsSearchState.searchContactOrder,
+                        onSearchContactOrderClick = { event(MainEvent.OnSearchContactOrderClick(contactsSearchState.searchQuery, it)) } ,
+                        onUpdateDropdownMenuVisibility = { event(MainEvent.UpdateSearchDropdownMenuState(it)) }
                     )
-                }
-                if (contactsSearchState.contacts.isEmpty() && !contactsSearchState.isLoading) {
-                    EmptyContacts(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        message = contactsSearchState.errorMessage ?: contactsNotFound,
-                        imagePainter = painterResource(id = R.drawable.icon_not_found)
-                    )
+                    if (contactsSearchState.contacts.isNotEmpty()) {
+                        ContactSearchList(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contacts = contactsSearchState.contacts,
+                            onContactClick = { contactInfo ->
+                                event(MainEvent.UpdateDialAlertDialog(contactInfo))
+                            },
+                            onLongContactClick = { index, contactInfo ->
+                                event(MainEvent.UpdateModalBottomSheetVisibility)
+                                event(MainEvent.UpdateModalBottomSheetContactInfo(ContactsMethod.SEARCH, index, contactInfo))
+                            }
+                        )
+                    }
+                    if (contactsSearchState.contacts.isEmpty() && !contactsSearchState.isLoading) {
+                        EmptyContacts(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            message = contactsSearchState.errorMessage ?: contactsNotFound,
+                            imagePainter = painterResource(id = R.drawable.icon_not_found)
+                        )
+                    }
                 }
             }
             ContactsOrderSection(
@@ -326,10 +341,25 @@ fun MainScreen(
                         bottom = dimensionResource(id = R.dimen._5dp)
                     ),
                 onIconClick = {
-                    event(MainEvent.UpdateContactOrderSectionVisibility(!contactsOrderSectionVisibleState))
+                    if (!isSelectionGeneralModeActiveState) {
+                        event(MainEvent.UpdateContactOrderSectionVisibility(!contactsOrderSectionVisibleState))
+                    }
                 }
             )
-            AnimatedVisibility(visible = contactsOrderSectionVisibleState) {
+            AnimatedVisibility(
+                visible = isSelectionGeneralModeActiveState,
+                enter = slideInHorizontally(),
+                exit = slideOutHorizontally(targetOffsetX = { offsetX -> -offsetX })
+            ) {
+                SelectedContactsInfoHeader(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = dimensionResource(id = R.dimen._10dp)),
+                    selectedContactsInfoCount = selectedContacts.size,
+                    onDeleteIconClick = {}
+                )
+            }
+            AnimatedVisibility(visible = contactsOrderSectionVisibleState && !isSelectionGeneralModeActiveState) {
                 RadioButtonsSection(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -353,13 +383,29 @@ fun MainScreen(
                         .fillMaxWidth()
                         .weight(1f),
                     lazyListState = lazyListState,
+                    isAtLeastOneContactInfoSelected = { header ->
+                        selectedContacts.any { selectedContactInfo -> selectedContactInfo.firstName.first() == header }
+                    },
                     contactsMap = contactsState.contacts,
-                    onContactClick = { contactInfo ->
-                        event(MainEvent.UpdateDialAlertDialog(contactInfo = contactInfo))
+                    onContactClick = { index, contactInfo ->
+                        if (!isSelectionGeneralModeActiveState) event(MainEvent.UpdateDialAlertDialog(contactInfo = contactInfo))
+                        else {
+                            event(MainEvent.UpdateIsContactSelectedFieldByClickOnContactInfo(contactInfo.firstName.first(), index))
+                        }
                     },
                     onLongContactClick = { index, contactInfo ->
-                        event(MainEvent.UpdateModalBottomSheetVisibility)
-                        event(MainEvent.UpdateModalBottomSheetContactInfo(ContactsMethod.GENERAL, index, contactInfo))
+                        if (!isSelectionGeneralModeActiveState) {
+                            event(MainEvent.UpdateModalBottomSheetVisibility)
+                            event(MainEvent.UpdateModalBottomSheetContactInfo(ContactsMethod.GENERAL, index, contactInfo))
+                        }
+                    },
+                    onStickyHeaderClick = { header ->
+                         if (selectedContacts.any { selectedContactInfo -> selectedContactInfo.firstName.first() == header }) {
+                             event(MainEvent.UpdateSelectedContactsByItsHeader(header, StickyHeaderAction.UNSELECT_ALL))
+                         }
+                         else {
+                             event(MainEvent.UpdateSelectedContactsByItsHeader(header, StickyHeaderAction.SELECT_ALL))
+                         }
                     }
                 )
             }

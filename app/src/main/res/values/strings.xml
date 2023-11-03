@@ -26,8 +26,11 @@
     <string name="contactActionsBottomSheetTitle">What do you want to do ?</string>
     <string name="contactActionsBottomSheetEditContact">Edit contact</string>
     <string name="contactActionsBottomSheetDeleteContact">Delete contact</string>
+    <string name="contactActionsBottomSheetSelectionMode">Selection mode</string>
     <string name="writeContactsPermissionRationaleAlertDialogEdit">Before you can edit the contact, you need to accept the required permission</string>
     <string name="writeContactsPermissionRationaleAlertDialogDelete">Before you can delete the contact, you need to accept the required permission</string>
+    <string name="writeContactsPermissionRationaleAlertDialogDeleteMultiple">Before you can delete selected contact(s), you need to accept the required permission</string>
     <string name="dialAlertDialogTitle">Call</string>
     <string name="dialAlertDialogText">You will be redirected to a window with a call with a number</string>
+    <string name="selectedContactsInfoHeader">Selected contacts:</string>
 </resources>

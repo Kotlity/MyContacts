@@ -24,6 +24,7 @@ object Constants {
     val _18sp = 18.sp
     val _20sp = 20.sp
     val _22sp = 22.sp
+    val _24sp = 24.sp
 
     const val dataStoreName = "dataStore"
     private const val hasUserAlreadyClickedOnStartButtonName = "hasUserAlreadyClickedOnStartButton"
