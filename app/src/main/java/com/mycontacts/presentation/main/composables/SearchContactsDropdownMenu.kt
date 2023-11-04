@@ -22,7 +22,7 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import com.mycontacts.R
 import com.mycontacts.utils.Constants._17sp
-import com.mycontacts.utils.ContactOrder
+import com.mycontacts.utils.order.ContactOrder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

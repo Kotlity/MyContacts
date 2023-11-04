@@ -1,8 +1,8 @@
 package com.mycontacts.presentation.main.states
 
 import com.mycontacts.data.contacts.ContactInfo
-import com.mycontacts.utils.ContactOrder
-import com.mycontacts.utils.ContactOrderType
+import com.mycontacts.utils.order.ContactOrder
+import com.mycontacts.utils.order.ContactOrderType
 
 data class ContactsSearchState(
     val isLoading: Boolean = false,

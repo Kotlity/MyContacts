@@ -14,8 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import com.mycontacts.R
-import com.mycontacts.utils.ContactOrder
-import com.mycontacts.utils.ContactOrderType
+import com.mycontacts.utils.order.ContactOrder
+import com.mycontacts.utils.order.ContactOrderType
 
 @Composable
 fun SearchContactsFilteringSection(
@@ -25,7 +25,7 @@ fun SearchContactsFilteringSection(
     onSearchContactOrderClick: (ContactOrder) -> Unit,
     onUpdateDropdownMenuVisibility: (Boolean) -> Unit,
 
-) {
+    ) {
     Column(
         modifier = modifier
     ) {
@@ -39,14 +39,16 @@ fun SearchContactsFilteringSection(
                 orderTitle = stringResource(id = R.string.contactOrderAscending),
                 isSelected = currentSearchContactOrder.contactOrderType == ContactOrderType.Ascending,
                 onClick = {
-                    onSearchContactOrderClick(currentSearchContactOrder.updateContactOrderWithContactOrderType(ContactOrderType.Ascending))
+                    onSearchContactOrderClick(currentSearchContactOrder.updateContactOrderWithContactOrderType(
+                        ContactOrderType.Ascending))
                 }
             )
             CustomRadioButtonSection(
                 orderTitle = stringResource(id = R.string.contactOrderDescending),
                 isSelected = currentSearchContactOrder.contactOrderType == ContactOrderType.Descending,
                 onClick = {
-                    onSearchContactOrderClick(currentSearchContactOrder.updateContactOrderWithContactOrderType(ContactOrderType.Descending))
+                    onSearchContactOrderClick(currentSearchContactOrder.updateContactOrderWithContactOrderType(
+                        ContactOrderType.Descending))
                 }
             )
             SearchContactsDropdownMenu(

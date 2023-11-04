@@ -9,8 +9,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import com.mycontacts.R
-import com.mycontacts.utils.ContactOrder
-import com.mycontacts.utils.ContactOrderType
+import com.mycontacts.utils.order.ContactOrder
+import com.mycontacts.utils.order.ContactOrderType
 
 @Composable
 fun RadioButtonsSection(
@@ -58,14 +58,16 @@ fun RadioButtonsSection(
                 orderTitle = stringResource(id = R.string.contactOrderAscending),
                 isSelected = currentContactOrder.contactOrderType is ContactOrderType.Ascending,
                 onClick = {
-                    onOrderClick(currentContactOrder.updateContactOrderWithContactOrderType(ContactOrderType.Ascending))
+                    onOrderClick(currentContactOrder.updateContactOrderWithContactOrderType(
+                        ContactOrderType.Ascending))
                 }
             )
             CustomRadioButtonSection(
                 orderTitle = stringResource(id = R.string.contactOrderDescending),
                 isSelected = currentContactOrder.contactOrderType is ContactOrderType.Descending,
                 onClick = {
-                    onOrderClick(currentContactOrder.updateContactOrderWithContactOrderType(ContactOrderType.Descending))
+                    onOrderClick(currentContactOrder.updateContactOrderWithContactOrderType(
+                        ContactOrderType.Descending))
                 }
             )
         }

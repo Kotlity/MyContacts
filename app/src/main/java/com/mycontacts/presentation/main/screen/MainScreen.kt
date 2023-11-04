@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -53,15 +54,17 @@ import com.mycontacts.presentation.main.viewmodels.MainViewModel
 import com.mycontacts.utils.Constants.contactsNotFound
 import com.mycontacts.utils.Constants.deleteContactSuccessful
 import com.mycontacts.utils.Constants.deleteContactUndo
+import com.mycontacts.utils.Constants.deleteSelectedContactsSuccessful
 import com.mycontacts.utils.Constants.dialPart
 import com.mycontacts.utils.Constants.dismissSnackbarActionLabel
 import com.mycontacts.utils.Constants.onDismissButtonClicked
 import com.mycontacts.utils.Constants.writeContactsPermissionNotGranted
 import com.mycontacts.utils.Constants.writeContactsPermissionGranted
 import com.mycontacts.utils.ContactAction
-import com.mycontacts.utils.ContactOrder
-import com.mycontacts.utils.ContactOrderType
 import com.mycontacts.utils.ContactsMethod
+import com.mycontacts.utils.order.ContactOrder
+import com.mycontacts.utils.order.ContactOrderType
+import com.mycontacts.utils.Resources
 import com.mycontacts.utils.StickyHeaderAction
 import com.mycontacts.utils.hideBottomSheet
 import com.mycontacts.utils.isAppHasPermissionToWriteContacts
@@ -91,6 +94,7 @@ fun MainScreen(
 
     val writeContactsPermissionResult = mainViewModel.writeContactsPermissionResult.receiveAsFlow()
     val deleteContactResult = mainViewModel.deleteContactResult.receiveAsFlow()
+    val deleteSelectedContactsResult = mainViewModel.deleteSelectedContactsResult.receiveAsFlow()
 
     val context = LocalContext.current
 
@@ -159,10 +163,36 @@ fun MainScreen(
                     contactsMethod?.let { contactsMethod ->
                         contactInfoIndex?.let { index ->
                             contactInfo?.let { contactInfo ->
-                                event(MainEvent.RestoreContact(contactsMethod, index, contactInfo))
+                                event(MainEvent.RestoreSingleContactInfo(contactsMethod, index, contactInfo))
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(key1 = Unit) {
+        deleteSelectedContactsResult.collect { deleteContactsResult ->
+            when(deleteContactsResult) {
+                is Resources.Success -> {
+                    val deleteContactsSnackbarResult = snackbarHostState.showSnackbar(
+                        message = deleteSelectedContactsSuccessful,
+                        actionLabel = deleteContactUndo,
+                        duration = SnackbarDuration.Long
+                    )
+                    if (deleteContactsSnackbarResult == SnackbarResult.ActionPerformed) {
+                        Log.e("MyTag", "on undo clicked")
+                    }
+                }
+                is Resources.Error -> {
+                    snackbarHostState.showSnackbar(
+                        message = deleteContactsResult.errorMessage ?: "",
+                        duration = SnackbarDuration.Short
+                    )
+                }
+                else -> {
+                    Log.e("MyTag", "loading state in launched effect block")
                 }
             }
         }
@@ -225,7 +255,7 @@ fun MainScreen(
                                 index?.let { index ->
                                     contactInfo?.let { contactInfo ->
                                         contactsMethod?.let { contactsMethod ->
-                                            event(MainEvent.DeleteContact(contactsMethod, index, contactInfo))
+                                            event(MainEvent.DeleteSingleContactInfo(contactsMethod, contactInfo, index))
                                         }
                                     }
                                 }
@@ -241,10 +271,7 @@ fun MainScreen(
                             index?.let { index ->
                                 contactInfo?.let { contactInfo ->
                                     contactsMethod?.let { contactsMethod ->
-                                        when(contactsMethod) {
-                                            ContactsMethod.GENERAL -> event(MainEvent.UpdateIsContactSelectedFieldByClickOnContactInfo(contactInfo.firstName.first(), index))
-                                            ContactsMethod.SEARCH -> event(MainEvent.UpdateIsSearchContactsSelectedFieldByClickOnContactInfo(index))
-                                        }
+
                                     }
                                 }
                             }

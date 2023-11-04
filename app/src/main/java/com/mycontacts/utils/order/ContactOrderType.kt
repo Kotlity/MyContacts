@@ -1,4 +1,4 @@
-package com.mycontacts.utils
+package com.mycontacts.utils.order
 
 sealed class ContactOrderType {
     object Ascending: ContactOrderType()

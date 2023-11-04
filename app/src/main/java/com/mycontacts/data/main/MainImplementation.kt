@@ -9,10 +9,12 @@ import androidx.core.database.getStringOrNull
 import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.domain.main.Main
 import com.mycontacts.utils.Constants.contactsNotFound
+import com.mycontacts.utils.Constants.deleteContactNotSuccessful
+import com.mycontacts.utils.Constants.deleteSelectedContactsDelay
 import com.mycontacts.utils.Constants.emptyContactsErrorMessage
 import com.mycontacts.utils.Constants.searchDelay
-import com.mycontacts.utils.ContactOrder
-import com.mycontacts.utils.ContactOrderType
+import com.mycontacts.utils.order.ContactOrder
+import com.mycontacts.utils.order.ContactOrderType
 import com.mycontacts.utils.ContactsMethod
 import com.mycontacts.utils.Resources
 import com.mycontacts.utils.getColumnIndex
@@ -70,6 +72,22 @@ class MainImplementation: Main {
                 return@withContext false
             }
             true
+        }
+    }
+
+    override fun deleteSelectedContacts(contentResolver: ContentResolver, selectedContacts: List<ContactInfo>): Flow<Resources<List<ContactInfo>>> {
+        return flow {
+            emit(Resources.Loading())
+
+            delay(deleteSelectedContactsDelay)
+
+            var isErrorOccurred = false
+
+            selectedContacts.forEach { selectedContact ->
+                isErrorOccurred = deleteContact(contentResolver, selectedContact)
+            }
+            if (isErrorOccurred) emit(Resources.Error(deleteContactNotSuccessful))
+            else emit(Resources.Success(selectedContacts))
         }
     }
 

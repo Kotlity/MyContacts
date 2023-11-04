@@ -11,8 +11,9 @@ object Constants {
     const val pagerImageSmallSizeInPixels = 512
     const val _1000 = 1000
 
-    const val splashDelay = 500L
     const val searchDelay = 300L
+    const val splashDelay = 500L
+    const val deleteSelectedContactsDelay = 5000L
 
     const val _06Float = 0.6f
     const val _04Float = 0.4f
@@ -36,6 +37,7 @@ object Constants {
     const val writeContactsPermissionNotGranted = "Permission not granted, repeat the action again"
     const val deleteContactSuccessful = "The contact was successfully deleted"
     const val deleteContactNotSuccessful = "Sorry, an unknown error occurred"
+    const val deleteSelectedContactsSuccessful = "The selected contacts were successfully deleted"
     const val deleteContactUndo = "Undo"
     const val dialPart = "tel"
 

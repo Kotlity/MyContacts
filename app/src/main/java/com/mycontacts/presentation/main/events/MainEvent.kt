@@ -2,8 +2,8 @@ package com.mycontacts.presentation.main.events
 
 import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.utils.ContactAction
-import com.mycontacts.utils.ContactOrder
 import com.mycontacts.utils.ContactsMethod
+import com.mycontacts.utils.order.ContactOrder
 import com.mycontacts.utils.StickyHeaderAction
 
 sealed class MainEvent {
@@ -18,8 +18,9 @@ sealed class MainEvent {
     data class OnMainViewModelInitializing(val permissionToAccessAllFiles: Boolean, val permissionToReadContacts: Boolean, val permissionToWriteContacts: Boolean): MainEvent()
     data class GetAllContacts(val contactOrder: ContactOrder): MainEvent()
     data class SearchContact(val searchQuery: String, val searchContactOrder: ContactOrder): MainEvent()
-    data class DeleteContact(val contactsMethod: ContactsMethod, val index: Int, val contactInfo: ContactInfo): MainEvent()
-    data class RestoreContact(val contactsMethod: ContactsMethod, val index: Int, val contactInfo: ContactInfo): MainEvent()
+    data class DeleteSingleContactInfo(val contactsMethod: ContactsMethod, val contactInfo: ContactInfo, val index: Int,): MainEvent()
+    data class DeleteSelectedContacts(val selectedContacts: List<ContactInfo>): MainEvent()
+    data class RestoreSingleContactInfo(val contactsMethod: ContactsMethod, val index: Int, val contactInfo: ContactInfo): MainEvent()
     data class UpdateSearchDropdownMenuState(val searchDropdownMenuVisibility: Boolean): MainEvent()
     data class OnSearchContactOrderClick(val searchQuery: String, val searchContactOrder: ContactOrder): MainEvent()
     data class UpdateSearchBarState(val isShouldShow: Boolean): MainEvent()

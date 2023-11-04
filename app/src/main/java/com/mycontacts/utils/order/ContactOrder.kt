@@ -1,4 +1,4 @@
-package com.mycontacts.utils
+package com.mycontacts.utils.order
 
 sealed class ContactOrder(val contactOrderType: ContactOrderType) {
     class FirstName(contactOrderType: ContactOrderType): ContactOrder(contactOrderType)
