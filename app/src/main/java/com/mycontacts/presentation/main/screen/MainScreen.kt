@@ -85,7 +85,9 @@ fun MainScreen(
     val writeContactsPermissionRationaleAlertDialogState = mainViewModel.writeContactsPermissionRationaleAlertDialog
     val dialAlertDialog = mainViewModel.dialAlertDialog
     val isSelectionGeneralModeActiveState = mainViewModel.isSelectionGeneralModeActive
-    val selectedContacts = contactsState.contacts.values.flatten().filter { contactInfo -> contactInfo.isSelected }
+    val isSelectionSearchModeActiveState = mainViewModel.isSelectionSearchModeActive
+    val selectedGeneralContacts = contactsState.contacts.values.flatten().filter { contactInfo -> contactInfo.isSelected }
+    val selectedSearchContacts = contactsSearchState.contacts.filter { searchContactInfo -> searchContactInfo.isSelected }
 
     val writeContactsPermissionResult = mainViewModel.writeContactsPermissionResult.receiveAsFlow()
     val deleteContactResult = mainViewModel.deleteContactResult.receiveAsFlow()
@@ -166,10 +168,14 @@ fun MainScreen(
         }
     }
 
-    LaunchedEffect(key1 = selectedContacts.size) {
-        if (selectedContacts.isEmpty()) event(MainEvent.UpdateSelectionGeneralMode(false))
+    LaunchedEffect(key1 = selectedGeneralContacts.size) {
+        if (selectedGeneralContacts.isEmpty()) event(MainEvent.UpdateSelectionGeneralMode(false))
         else event(MainEvent.UpdateSelectionGeneralMode(true))
+    }
 
+    LaunchedEffect(key1 = selectedSearchContacts.size) {
+        if (selectedSearchContacts.isEmpty()) event(MainEvent.UpdateSelectionSearchMode(false))
+        else event(MainEvent.UpdateSelectionSearchMode(true))
     }
 
     if (!isUserHasPermissionsForMainScreenState.isUserHasPermissionToAccessAllFiles) {
@@ -234,7 +240,12 @@ fun MainScreen(
                         contactActionsModalBottomSheetState.apply {
                             index?.let { index ->
                                 contactInfo?.let { contactInfo ->
-                                    event(MainEvent.UpdateIsContactSelectedFieldByClickOnContactInfo(contactInfo.firstName.first(), index))
+                                    contactsMethod?.let { contactsMethod ->
+                                        when(contactsMethod) {
+                                            ContactsMethod.GENERAL -> event(MainEvent.UpdateIsContactSelectedFieldByClickOnContactInfo(contactInfo.firstName.first(), index))
+                                            ContactsMethod.SEARCH -> event(MainEvent.UpdateIsSearchContactsSelectedFieldByClickOnContactInfo(index))
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -290,6 +301,7 @@ fun MainScreen(
             ) {
                 CustomSearchBar(
                     contactsSearchState = contactsSearchState,
+                    isSearchBarEnabled = !isSelectionSearchModeActiveState,
                     onQueryChangeEvent = { event(MainEvent.SearchContact(it, contactsSearchState.searchContactOrder)) },
                     onUpdateSearchBarEvent = { event(MainEvent.UpdateSearchBarState(it)) },
                     onClearSearchQueryEvent = { event(MainEvent.ClearSearchQuery) }
@@ -297,27 +309,45 @@ fun MainScreen(
                     AnimatedVisibility(visible = contactsSearchState.isLoading) {
                         CustomProgressBar(modifier = Modifier.fillMaxSize())
                     }
-                    SearchContactsFilteringSection(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = dimensionResource(id = R.dimen._5dp)),
-                        isExpanded = contactsSearchState.isSearchDropdownMenuExpanded,
-                        currentSearchContactOrder = contactsSearchState.searchContactOrder,
-                        onSearchContactOrderClick = { event(MainEvent.OnSearchContactOrderClick(contactsSearchState.searchQuery, it)) } ,
-                        onUpdateDropdownMenuVisibility = { event(MainEvent.UpdateSearchDropdownMenuState(it)) }
-                    )
+                    AnimatedVisibility(
+                        visible = isSelectionSearchModeActiveState,
+                        enter = slideInHorizontally(),
+                        exit = slideOutHorizontally(targetOffsetX = { offsetX -> -offsetX })
+                    ) {
+                        SelectedContactsInfoHeader(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = dimensionResource(id = R.dimen._10dp)),
+                            selectedContactsInfoCount = selectedSearchContacts.size,
+                            onDeleteIconClick = {}
+                        )
+                    }
+                    AnimatedVisibility(visible = !isSelectionSearchModeActiveState) {
+                        SearchContactsFilteringSection(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = dimensionResource(id = R.dimen._5dp)),
+                            isExpanded = contactsSearchState.isSearchDropdownMenuExpanded,
+                            currentSearchContactOrder = contactsSearchState.searchContactOrder,
+                            onSearchContactOrderClick = { event(MainEvent.OnSearchContactOrderClick(contactsSearchState.searchQuery, it)) } ,
+                            onUpdateDropdownMenuVisibility = { event(MainEvent.UpdateSearchDropdownMenuState(it)) }
+                        )
+                    }
                     if (contactsSearchState.contacts.isNotEmpty()) {
                         ContactSearchList(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f),
                             contacts = contactsSearchState.contacts,
-                            onContactClick = { contactInfo ->
-                                event(MainEvent.UpdateDialAlertDialog(contactInfo))
+                            onContactClick = { index, contactInfo ->
+                                if (!isSelectionSearchModeActiveState) event(MainEvent.UpdateDialAlertDialog(contactInfo))
+                                else event(MainEvent.UpdateIsSearchContactsSelectedFieldByClickOnContactInfo(index))
                             },
                             onLongContactClick = { index, contactInfo ->
-                                event(MainEvent.UpdateModalBottomSheetVisibility)
-                                event(MainEvent.UpdateModalBottomSheetContactInfo(ContactsMethod.SEARCH, index, contactInfo))
+                                if (!isSelectionSearchModeActiveState) {
+                                    event(MainEvent.UpdateModalBottomSheetVisibility)
+                                    event(MainEvent.UpdateModalBottomSheetContactInfo(ContactsMethod.SEARCH, index, contactInfo))
+                                }
                             }
                         )
                     }
@@ -355,7 +385,7 @@ fun MainScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = dimensionResource(id = R.dimen._10dp)),
-                    selectedContactsInfoCount = selectedContacts.size,
+                    selectedContactsInfoCount = selectedGeneralContacts.size,
                     onDeleteIconClick = {}
                 )
             }
@@ -384,14 +414,12 @@ fun MainScreen(
                         .weight(1f),
                     lazyListState = lazyListState,
                     isAtLeastOneContactInfoSelected = { header ->
-                        selectedContacts.any { selectedContactInfo -> selectedContactInfo.firstName.first() == header }
+                        selectedGeneralContacts.any { selectedContactInfo -> selectedContactInfo.firstName.first() == header }
                     },
                     contactsMap = contactsState.contacts,
                     onContactClick = { index, contactInfo ->
                         if (!isSelectionGeneralModeActiveState) event(MainEvent.UpdateDialAlertDialog(contactInfo = contactInfo))
-                        else {
-                            event(MainEvent.UpdateIsContactSelectedFieldByClickOnContactInfo(contactInfo.firstName.first(), index))
-                        }
+                        else event(MainEvent.UpdateIsContactSelectedFieldByClickOnContactInfo(contactInfo.firstName.first(), index))
                     },
                     onLongContactClick = { index, contactInfo ->
                         if (!isSelectionGeneralModeActiveState) {
@@ -400,12 +428,10 @@ fun MainScreen(
                         }
                     },
                     onStickyHeaderClick = { header ->
-                         if (selectedContacts.any { selectedContactInfo -> selectedContactInfo.firstName.first() == header }) {
+                         if (selectedGeneralContacts.any { selectedContactInfo -> selectedContactInfo.firstName.first() == header }) {
                              event(MainEvent.UpdateSelectedContactsByItsHeader(header, StickyHeaderAction.UNSELECT_ALL))
                          }
-                         else {
-                             event(MainEvent.UpdateSelectedContactsByItsHeader(header, StickyHeaderAction.SELECT_ALL))
-                         }
+                         else event(MainEvent.UpdateSelectedContactsByItsHeader(header, StickyHeaderAction.SELECT_ALL))
                     }
                 )
             }

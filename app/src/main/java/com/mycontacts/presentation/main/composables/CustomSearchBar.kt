@@ -22,6 +22,7 @@ import com.mycontacts.presentation.main.states.ContactsSearchState
 @Composable
 fun CustomSearchBar(
     contactsSearchState: ContactsSearchState,
+    isSearchBarEnabled: Boolean,
     onQueryChangeEvent: (String) -> Unit,
     onUpdateSearchBarEvent: (Boolean) -> Unit,
     onClearSearchQueryEvent: () -> Unit,
@@ -39,6 +40,7 @@ fun CustomSearchBar(
             onUpdateSearchBarEvent(false)
         },
         active = contactsSearchState.isSearchBarActive,
+        enabled = isSearchBarEnabled,
         onActiveChange = { activeState ->
             onUpdateSearchBarEvent(activeState)
         },
@@ -55,14 +57,16 @@ fun CustomSearchBar(
             )
         },
         trailingIcon = {
-            Icon(
-                modifier = Modifier.clickable {
-                    if (contactsSearchState.searchQuery.isNotEmpty()) onClearSearchQueryEvent()
-                    else onUpdateSearchBarEvent(false)
-                },
-                imageVector = Icons.Default.Clear,
-                contentDescription = null
-            )
+            if (contactsSearchState.isSearchBarActive) {
+                Icon(
+                    modifier = Modifier.clickable {
+                        if (contactsSearchState.searchQuery.isNotEmpty()) onClearSearchQueryEvent()
+                        else onUpdateSearchBarEvent(false)
+                    },
+                    imageVector = Icons.Default.Clear,
+                    contentDescription = null
+                )
+            }
         }
     ) {
         content()

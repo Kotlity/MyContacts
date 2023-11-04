@@ -68,6 +68,8 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
     var isSelectionGeneralModeActive by derivedStateOf { mutableStateOf(false) }.value
         private set
 
+    var isSelectionSearchModeActive by derivedStateOf { mutableStateOf(false) }.value
+
     private var contactsJob: Job? = null
 
     private var searchJob: Job? = null
@@ -130,8 +132,14 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
             is MainEvent.UpdateSelectionGeneralMode -> {
                 updateSelectionGeneralMode(mainEvent.selectionGeneralMode)
             }
+            is MainEvent.UpdateSelectionSearchMode -> {
+                updateSelectionSearchMode(mainEvent.selectionSearchMode)
+            }
             is MainEvent.UpdateIsContactSelectedFieldByClickOnContactInfo -> {
                 updateIsContactSelectedFieldByClickOnContactInfo(mainEvent.header, mainEvent.index)
+            }
+            is MainEvent.UpdateIsSearchContactsSelectedFieldByClickOnContactInfo -> {
+                updateIsSearchContactsSelectedFieldByClickOnContactInfo(mainEvent.index)
             }
             is MainEvent.UpdateSelectedContactsByItsHeader -> {
                 updateSelectedContactsByItsHeader(mainEvent.header, mainEvent.stickyHeaderAction)
@@ -315,6 +323,10 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         isSelectionGeneralModeActive = selectionGeneralMode
     }
 
+    private fun updateSelectionSearchMode(selectionSearchMode: Boolean) {
+        isSelectionSearchModeActive = selectionSearchMode
+    }
+
     private fun updateIsContactSelectedFieldByClickOnContactInfo(header: Char, index: Int) {
         val mutableContactsMap = contactsState.contacts.mapValues { map -> map.value.toMutableList() }.toMutableMap()
 
@@ -325,6 +337,15 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         val updatedContactsMap = mutableContactsMap.mapValues { map -> map.value.toList() }
 
         contactsState = contactsState.copy(contacts = updatedContactsMap)
+    }
+
+    private fun updateIsSearchContactsSelectedFieldByClickOnContactInfo(index: Int) {
+        contactsSearchState.contacts.mapIndexed { i, searchContactInfo ->
+            if (index == i) searchContactInfo.copy(isSelected = !searchContactInfo.isSelected)
+            else searchContactInfo
+        }.also { updatedSearchContactsList ->
+            contactsSearchState = contactsSearchState.copy(contacts = updatedSearchContactsList)
+        }
     }
 
     private fun updateSelectedContactsByItsHeader(header: Char, stickyHeaderAction: StickyHeaderAction) {

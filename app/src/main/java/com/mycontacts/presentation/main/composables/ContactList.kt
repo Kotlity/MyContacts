@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.colorResource
@@ -67,7 +66,7 @@ fun ContactGeneralList(
 fun ContactSearchList(
     modifier: Modifier,
     contacts: List<ContactInfo>,
-    onContactClick: (ContactInfo) -> Unit,
+    onContactClick: (Int, ContactInfo) -> Unit,
     onLongContactClick: (Int, ContactInfo) -> Unit
 ) {
     LazyColumn(modifier = modifier) {
@@ -75,7 +74,7 @@ fun ContactSearchList(
             ContactItem(
                 contactInfo = contact,
                 onContactClick = {
-                    onContactClick(contact)
+                    onContactClick(index, contact)
                 },
                 onLongContactClick = {
                     onLongContactClick(index, contact)
