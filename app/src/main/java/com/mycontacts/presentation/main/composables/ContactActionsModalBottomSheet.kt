@@ -8,7 +8,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mouse
-import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -31,7 +30,7 @@ fun ContactActionsModalBottomSheet(
     modifier: Modifier = Modifier,
     onEditContactClick: () -> Unit,
     onDeleteContactClick: () -> Unit,
-    onMultipleDeleteClick: () -> Unit,
+    onSelectedModeClick: () -> Unit,
 ) {
     Column(
         modifier = modifier,
@@ -57,7 +56,7 @@ fun ContactActionsModalBottomSheet(
         )
         ContactActionButton(
             backgroundColor = MaterialTheme.colorScheme.error,
-            onClick = onMultipleDeleteClick,
+            onClick = onSelectedModeClick,
             imageVector = Icons.Default.Mouse,
             text = stringResource(id = R.string.contactActionsBottomSheetSelectionMode)
         )

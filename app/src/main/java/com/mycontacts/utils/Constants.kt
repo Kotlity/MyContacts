@@ -13,7 +13,6 @@ object Constants {
 
     const val searchDelay = 300L
     const val splashDelay = 500L
-    const val deleteSelectedContactsDelay = 5000L
 
     const val _06Float = 0.6f
     const val _04Float = 0.4f

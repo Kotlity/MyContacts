@@ -13,6 +13,7 @@ import com.mycontacts.presentation.main.events.MainEvent
 import com.mycontacts.presentation.main.states.ContactsSearchState
 import com.mycontacts.presentation.main.states.ContactsState
 import com.mycontacts.presentation.main.states.DeleteContactResult
+import com.mycontacts.presentation.main.states.DeleteSelectedContactsResult
 import com.mycontacts.presentation.main.states.DialAlertDialogState
 import com.mycontacts.presentation.main.states.ModalBottomSheetState
 import com.mycontacts.presentation.main.states.PermissionsForMainScreenState
@@ -20,6 +21,7 @@ import com.mycontacts.presentation.main.states.WriteContactsAlertDialogState
 import com.mycontacts.utils.Constants.contactsNotFound
 import com.mycontacts.utils.Constants.deleteContactNotSuccessful
 import com.mycontacts.utils.Constants.deleteContactSuccessful
+import com.mycontacts.utils.Constants.deleteSelectedContactsSuccessful
 import com.mycontacts.utils.ContactAction
 import com.mycontacts.utils.ContactsMethod
 import com.mycontacts.utils.order.ContactOrder
@@ -61,7 +63,7 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
     var deleteContactResult = Channel<DeleteContactResult>()
         private set
 
-    var deleteSelectedContactsResult = Channel<Resources<List<ContactInfo>>>()
+    var deleteSelectedContactsResult = Channel<DeleteSelectedContactsResult>()
         private set
 
     var contactsOrderSectionVisibleState by derivedStateOf { mutableStateOf(true) }.value
@@ -120,10 +122,13 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
                 deleteSingleContactInfo(contentResolver, mainEvent.contactsMethod, mainEvent.contactInfo, mainEvent.index)
             }
             is MainEvent.DeleteSelectedContacts -> {
-                deleteSelectedContacts(contentResolver, mainEvent.selectedContacts)
+                deleteSelectedContacts(contentResolver, mainEvent.contactsMethod, mainEvent.selectedContacts)
             }
             is MainEvent.RestoreSingleContactInfo -> {
                 restoreSingleContactInfo(contentResolver, mainEvent.contactsMethod, mainEvent.contactInfo, mainEvent.index)
+            }
+            is MainEvent.RestoreSelectedContacts -> {
+                restoreSelectedContacts(contentResolver, mainEvent.contactsMethod, mainEvent.selectedContacts)
             }
             is MainEvent.UpdateModalBottomSheetContactInfo -> {
                 updateModalBottomSheetContactInfo(mainEvent.contactsMethod, mainEvent.index, mainEvent.contactInfo)
@@ -143,8 +148,8 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
             is MainEvent.UpdateIsContactSelectedFieldByClickOnContactInfo -> {
                 updateIsContactSelectedFieldByClickOnContactInfo(mainEvent.header, mainEvent.index)
             }
-            is MainEvent.UpdateIsSearchContactsSelectedFieldByClickOnContactInfo -> {
-                updateIsSearchContactsSelectedFieldByClickOnContactInfo(mainEvent.index)
+            is MainEvent.UpdateIsSearchContactSelectedFieldByClickOnContactInfo -> {
+                updateIsSearchContactSelectedFieldByClickOnContactInfo(mainEvent.index)
             }
             is MainEvent.UpdateSelectedContactsByItsHeader -> {
                 updateSelectedContactsByItsHeader(mainEvent.header, mainEvent.stickyHeaderAction)
@@ -211,13 +216,11 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         viewModelScope.launch {
             val isSuccessful = main.deleteContact(contentResolver, contactInfo)
             if (isSuccessful) {
+                deleteContactResult.send(DeleteContactResult(deleteContactSuccessful, contactsMethod, index, contactInfo))
+
                 when (contactsMethod) {
-                    ContactsMethod.GENERAL -> {
-                        deleteContactResult.send(DeleteContactResult(deleteContactSuccessful, contactsMethod, index, contactInfo))
-                        removeSingleContactInfoInGeneralList(contactInfo)
-                    }
+                    ContactsMethod.GENERAL -> removeSingleContactInfoInGeneralList(contactInfo)
                     ContactsMethod.SEARCH -> {
-                        deleteContactResult.send(DeleteContactResult(deleteContactSuccessful, contactsMethod, index, contactInfo))
                         removeSingleContactInfoInSearchingList(contactInfo)
                         removeSingleContactInfoInGeneralList(contactInfo)
                     }
@@ -227,12 +230,31 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         }
     }
 
-    private fun deleteSelectedContacts(contentResolver: ContentResolver, selectedContacts: List<ContactInfo>) {
+    private fun deleteSelectedContacts(contentResolver: ContentResolver, contactsMethod: ContactsMethod, selectedContacts: List<ContactInfo>) {
         main.deleteSelectedContacts(contentResolver, selectedContacts).onEach { deleteResult ->
             when(deleteResult) {
-                is Resources.Success -> deleteSelectedContactsResult.send(Resources.Success(deleteResult.data ?: emptyList()))
-                is Resources.Error -> deleteSelectedContactsResult.send(Resources.Error(deleteResult.errorMessage?: ""))
-                is Resources.Loading -> deleteSelectedContactsResult.send(Resources.Loading())
+                is Resources.Success -> {
+                    deleteSelectedContactsResult.send(
+                        DeleteSelectedContactsResult(deleteSelectedContactsSuccessful, contactsMethod, deleteResult.data ?: emptyList())
+                    )
+                    when(contactsMethod) {
+                        ContactsMethod.GENERAL -> removeSelectedContactsInGeneralList(selectedContacts)
+                        ContactsMethod.SEARCH -> {
+                            removeSelectedContactsInSearchList(selectedContacts)
+                            removeSelectedContactsInGeneralList(selectedContacts)
+                        }
+                    }
+                }
+                is Resources.Error -> {
+                    deleteSelectedContactsResult.send(
+                        DeleteSelectedContactsResult(deleteResult.errorMessage ?: "")
+                    )
+                    when(contactsMethod) {
+                        ContactsMethod.GENERAL -> unselectAllSelectedGeneralContacts()
+                        ContactsMethod.SEARCH -> unselectAllSelectedSearchContacts()
+                    }
+                }
+                else -> Unit
             }
         }.launchIn(viewModelScope)
     }
@@ -250,9 +272,49 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
             }
         }
     }
+
+    private fun restoreSelectedContacts(contentResolver: ContentResolver, contactsMethod: ContactsMethod, selectedContacts: List<ContactInfo>) {
+        viewModelScope.launch {
+            val restoredSelectedContacts = main.restoreSelectedContacts(contentResolver, selectedContacts)
+            when(contactsMethod) {
+                ContactsMethod.GENERAL -> {
+                    restoreSelectedContactsInGeneralList(restoredSelectedContacts)
+                }
+                ContactsMethod.SEARCH -> {
+                    restoreSelectedContactsInSearchList(restoredSelectedContacts)
+                    restoreSelectedContactsInGeneralList(restoredSelectedContacts)
+                }
+            }
+        }
+    }
+
+    private fun removeSelectedContactsInGeneralList(selectedGeneralContacts: List<ContactInfo>) {
+        val mutableContactsMap = contactsState.contacts.mapValues { contactsMap -> contactsMap.value.toMutableList() }.toMutableMap()
+
+        selectedGeneralContacts.forEach { selectedGeneralContact ->
+            val header = selectedGeneralContact.firstName.first()
+            val generalContactsByHeader = mutableContactsMap[header]
+            generalContactsByHeader?.remove(selectedGeneralContact)
+
+            if (generalContactsByHeader.isNullOrEmpty()) mutableContactsMap.remove(header)
+        }
+
+        val updatedContactsMap = mutableContactsMap.mapValues { updatedMap -> updatedMap.value.toList() }
+
+        contactsState = contactsState.copy(contacts = updatedContactsMap)
+    }
+
+    private fun removeSelectedContactsInSearchList(selectedSearchContacts: List<ContactInfo>) {
+        val mutableSearchContacts = contactsSearchState.contacts.toMutableList().apply { removeAll(selectedSearchContacts) }
+
+        val updatedSearchContacts = mutableSearchContacts.toList()
+
+        contactsSearchState = contactsSearchState.copy(contacts = updatedSearchContacts)
+    }
+
     private fun removeSingleContactInfoInGeneralList(contactInfo: ContactInfo) {
-        val key = contactInfo.firstName.first()
         val mutableContactsMap = contactsState.contacts.mapValues { contactInfoMap -> contactInfoMap.value.toMutableList() }.toMutableMap()
+        val key = contactInfo.firstName.first()
 
         val updatedContactsByKey = mutableContactsMap.getOrDefault(key, mutableListOf()).apply { remove(contactInfo) }
         mutableContactsMap[key] = updatedContactsByKey
@@ -270,9 +332,34 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         contactsSearchState = contactsSearchState.copy(contacts = updatedSearchContactsList)
     }
 
+    private fun restoreSelectedContactsInGeneralList(restoredSelectedContacts: List<ContactInfo>) {
+        val mutableContactsMap = contactsState.contacts.mapValues { contactsMap -> contactsMap.value.toMutableList() }.toMutableMap()
+
+        restoredSelectedContacts.forEach { restoredSelectedContact ->
+            val header = restoredSelectedContact.firstName.first()
+            val updatedContactsByHeader = mutableContactsMap[header]?.toMutableList() ?: mutableListOf()
+
+            updatedContactsByHeader.add(restoredSelectedContact)
+
+            mutableContactsMap[header] = updatedContactsByHeader
+
+        }
+
+        val updatedContactsMap = mutableContactsMap.mapValues { updatedContactMap -> updatedContactMap.value.toList() }
+
+        contactsState = contactsState.copy(contacts = updatedContactsMap)
+    }
+
+    private fun restoreSelectedContactsInSearchList(restoredSelectedContacts: List<ContactInfo>) {
+        val mutableSearchContacts = contactsSearchState.contacts.toMutableList().apply { addAll(restoredSelectedContacts) }
+        val updatedSearchContacts = mutableSearchContacts.toList()
+
+        contactsSearchState = contactsSearchState.copy(contacts = updatedSearchContacts)
+    }
+
     private fun restoreSingleContactInfoInGeneralList(contactInfo: ContactInfo, index: Int) {
-        val key = contactInfo.firstName.first()
         val mutableContactsMap = contactsState.contacts.mapValues { contactInfoMap -> contactInfoMap.value.toMutableList() }.toMutableMap()
+        val key = contactInfo.firstName.first()
 
         if (mutableContactsMap.containsKey(key)) {
             val updatedContactsByKey = mutableContactsMap.getOrDefault(key, mutableListOf()).apply { add(index, contactInfo) }
@@ -364,7 +451,7 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
     private fun updateIsContactSelectedFieldByClickOnContactInfo(header: Char, index: Int) {
         val mutableContactsMap = contactsState.contacts.mapValues { map -> map.value.toMutableList() }.toMutableMap()
 
-        mutableContactsMap[header] = contactsState.contacts[header]?.mapIndexed { i, contactInfo ->
+        mutableContactsMap[header] = mutableContactsMap[header]?.mapIndexed { i, contactInfo ->
             if (index == i) contactInfo.copy(isSelected = !contactInfo.isSelected)
             else contactInfo
         }?.toMutableList() ?: mutableListOf()
@@ -373,13 +460,39 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         contactsState = contactsState.copy(contacts = updatedContactsMap)
     }
 
-    private fun updateIsSearchContactsSelectedFieldByClickOnContactInfo(index: Int) {
+    private fun updateIsSearchContactSelectedFieldByClickOnContactInfo(index: Int) {
         contactsSearchState.contacts.mapIndexed { i, searchContactInfo ->
             if (index == i) searchContactInfo.copy(isSelected = !searchContactInfo.isSelected)
             else searchContactInfo
         }.also { updatedSearchContactsList ->
             contactsSearchState = contactsSearchState.copy(contacts = updatedSearchContactsList)
         }
+    }
+
+    private fun unselectAllSelectedGeneralContacts() {
+        val mutableContactsMap = contactsState.contacts.mapValues { map -> map.value.toMutableList() }.toMutableMap()
+
+        mutableContactsMap.keys.forEach { header ->
+            mutableContactsMap[header] = mutableContactsMap[header]?.map { contactInfo ->
+                contactInfo.copy(isSelected = false)
+            }?.toMutableList() ?: mutableListOf()
+        }
+
+        val updatedContactsMap = mutableContactsMap.mapValues { updatedContactMap -> updatedContactMap.value.toList() }
+
+        contactsState = contactsState.copy(contacts = updatedContactsMap)
+    }
+
+    private fun unselectAllSelectedSearchContacts() {
+        var mutableSearchContacts = contactsSearchState.contacts.toMutableList()
+
+        mutableSearchContacts = mutableSearchContacts.map { searchContact ->
+            searchContact.copy(isSelected = false)
+        }.toMutableList()
+
+        val updatedSearchContacts = mutableSearchContacts.toList()
+
+        contactsSearchState = contactsSearchState.copy(contacts = updatedSearchContacts)
     }
 
     private fun updateSelectedContactsByItsHeader(header: Char, stickyHeaderAction: StickyHeaderAction) {

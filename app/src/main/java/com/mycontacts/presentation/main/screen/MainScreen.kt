@@ -6,7 +6,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -23,7 +22,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,10 +62,10 @@ import com.mycontacts.utils.ContactAction
 import com.mycontacts.utils.ContactsMethod
 import com.mycontacts.utils.order.ContactOrder
 import com.mycontacts.utils.order.ContactOrderType
-import com.mycontacts.utils.Resources
 import com.mycontacts.utils.StickyHeaderAction
 import com.mycontacts.utils.hideBottomSheet
 import com.mycontacts.utils.isAppHasPermissionToWriteContacts
+import com.mycontacts.utils.showSnackbar
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -153,48 +151,37 @@ fun MainScreen(
 
     LaunchedEffect(key1 = Unit) {
         deleteContactResult.collect { deleteContactResult ->
-            val snackbarResult = snackbarHostState.showSnackbar(
+            showSnackbar(
+                snackbarHostState = snackbarHostState,
                 message = deleteContactResult.result,
-                actionLabel = if (deleteContactResult.result == deleteContactSuccessful) deleteContactUndo else null,
-                duration = SnackbarDuration.Long
-            )
-            if (snackbarResult == SnackbarResult.ActionPerformed) {
-                deleteContactResult.apply {
-                    contactsMethod?.let { contactsMethod ->
-                        contactInfoIndex?.let { index ->
-                            contactInfo?.let { contactInfo ->
-                                event(MainEvent.RestoreSingleContactInfo(contactsMethod, index, contactInfo))
+                undo = if (deleteContactResult.result == deleteContactSuccessful) deleteContactUndo else null,
+                onUndoClick = {
+                    deleteContactResult.apply {
+                        contactsMethod?.let { contactsMethod ->
+                            contactInfoIndex?.let { index ->
+                                contactInfo?.let { contactInfo ->
+                                    event(MainEvent.RestoreSingleContactInfo(contactsMethod, index, contactInfo))
+                                }
                             }
                         }
                     }
                 }
-            }
+            )
         }
     }
 
     LaunchedEffect(key1 = Unit) {
         deleteSelectedContactsResult.collect { deleteContactsResult ->
-            when(deleteContactsResult) {
-                is Resources.Success -> {
-                    val deleteContactsSnackbarResult = snackbarHostState.showSnackbar(
-                        message = deleteSelectedContactsSuccessful,
-                        actionLabel = deleteContactUndo,
-                        duration = SnackbarDuration.Long
-                    )
-                    if (deleteContactsSnackbarResult == SnackbarResult.ActionPerformed) {
-                        Log.e("MyTag", "on undo clicked")
-                    }
+            showSnackbar(
+                snackbarHostState = snackbarHostState,
+                message = deleteContactsResult.message,
+                undo = if (deleteContactsResult.message == deleteSelectedContactsSuccessful) deleteContactUndo else null,
+                onUndoClick = {
+                    val selectedContacts = deleteContactsResult.selectedContacts
+                    val contactsMethod = deleteContactsResult.contactsMethod!!
+                    event(MainEvent.RestoreSelectedContacts(selectedContacts, contactsMethod))
                 }
-                is Resources.Error -> {
-                    snackbarHostState.showSnackbar(
-                        message = deleteContactsResult.errorMessage ?: "",
-                        duration = SnackbarDuration.Short
-                    )
-                }
-                else -> {
-                    Log.e("MyTag", "loading state in launched effect block")
-                }
-            }
+            )
         }
     }
 
@@ -265,13 +252,16 @@ fun MainScreen(
                             coroutineScope.launch { hideBottomSheet(modalBottomSheetState, event) }
                         }
                     },
-                    onMultipleDeleteClick = {
+                    onSelectedModeClick = {
                         coroutineScope.launch { hideBottomSheet(modalBottomSheetState, event) }
                         contactActionsModalBottomSheetState.apply {
                             index?.let { index ->
                                 contactInfo?.let { contactInfo ->
                                     contactsMethod?.let { contactsMethod ->
-
+                                        when(contactsMethod) {
+                                            ContactsMethod.GENERAL -> event(MainEvent.UpdateIsContactSelectedFieldByClickOnContactInfo(contactInfo.firstName.first(), index))
+                                            ContactsMethod.SEARCH -> event(MainEvent.UpdateIsSearchContactSelectedFieldByClickOnContactInfo(index))
+                                        }
                                     }
                                 }
                             }
@@ -346,7 +336,11 @@ fun MainScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = dimensionResource(id = R.dimen._10dp)),
                             selectedContactsInfoCount = selectedSearchContacts.size,
-                            onDeleteIconClick = {}
+                            onDeleteIconClick = {
+                                if (isAppHasPermissionToWriteContacts(context)) {
+                                    event(MainEvent.DeleteSelectedContacts(selectedSearchContacts, ContactsMethod.SEARCH))
+                                } else event(MainEvent.Permissions.UpdateWriteContactsPermissionRationaleAlertDialog(ContactAction.DELETE_MULTIPLE))
+                            }
                         )
                     }
                     AnimatedVisibility(visible = !isSelectionSearchModeActiveState) {
@@ -368,7 +362,7 @@ fun MainScreen(
                             contacts = contactsSearchState.contacts,
                             onContactClick = { index, contactInfo ->
                                 if (!isSelectionSearchModeActiveState) event(MainEvent.UpdateDialAlertDialog(contactInfo))
-                                else event(MainEvent.UpdateIsSearchContactsSelectedFieldByClickOnContactInfo(index))
+                                else event(MainEvent.UpdateIsSearchContactSelectedFieldByClickOnContactInfo(index))
                             },
                             onLongContactClick = { index, contactInfo ->
                                 if (!isSelectionSearchModeActiveState) {
@@ -413,7 +407,11 @@ fun MainScreen(
                         .fillMaxWidth()
                         .padding(horizontal = dimensionResource(id = R.dimen._10dp)),
                     selectedContactsInfoCount = selectedGeneralContacts.size,
-                    onDeleteIconClick = {}
+                    onDeleteIconClick = {
+                        if (isAppHasPermissionToWriteContacts(context)) {
+                            event(MainEvent.DeleteSelectedContacts(selectedGeneralContacts, ContactsMethod.GENERAL))
+                        } else event(MainEvent.Permissions.UpdateWriteContactsPermissionRationaleAlertDialog(ContactAction.DELETE_MULTIPLE))
+                    }
                 )
             }
             AnimatedVisibility(visible = contactsOrderSectionVisibleState && !isSelectionGeneralModeActiveState) {

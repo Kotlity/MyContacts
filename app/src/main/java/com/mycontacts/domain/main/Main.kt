@@ -16,6 +16,8 @@ interface Main {
 
     fun deleteSelectedContacts(contentResolver: ContentResolver, selectedContacts: List<ContactInfo>): Flow<Resources<List<ContactInfo>>>
 
+    suspend fun restoreSelectedContacts(contentResolver: ContentResolver, selectedContacts: List<ContactInfo>): List<ContactInfo>
+
     suspend fun restoreContact(contentResolver: ContentResolver, contactInfo: ContactInfo): ContactInfo?
 
 }
