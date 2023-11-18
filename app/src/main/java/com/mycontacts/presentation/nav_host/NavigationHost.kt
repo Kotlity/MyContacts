@@ -4,29 +4,27 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.mycontacts.data.contacts.ContactInfo
+import com.mycontacts.presentation.contact_operations.screen.ContactOperationsScreen
 import com.mycontacts.presentation.general_content_screen.GeneralContentScreen
 import com.mycontacts.presentation.main.events.MainEvent
 import com.mycontacts.presentation.main.screen.MainScreen
 import com.mycontacts.presentation.main.viewmodels.MainViewModel
 import com.mycontacts.presentation.pager.screen.PagerScreen
 import com.mycontacts.presentation.pager.viewmodels.PagerViewModel
+import com.mycontacts.utils.Constants.contactInfoKey
 import com.mycontacts.utils.ScreenRoutes
+import com.mycontacts.utils.contactOperationsViewModelCreator
+import com.mycontacts.utils.navigateWithArgument
+import com.mycontacts.utils.retrieveArgument
 
 @Composable
 fun NavigationHost(
@@ -48,7 +46,7 @@ fun NavigationHost(
                 val pagerViewModel: PagerViewModel = hiltViewModel()
                 PagerScreen(onEvent = pagerViewModel::onEvent)
             }
-            composable(ScreenRoutes.Main.route) { backStackEntry ->
+            composable(ScreenRoutes.Main.route) {
                 val context = LocalContext.current
                 val contentResolver = context.contentResolver
                 val mainViewModel: MainViewModel = hiltViewModel()
@@ -65,20 +63,25 @@ fun NavigationHost(
                     event = { mainEvent ->
                         mainViewModel.onEvent(contentResolver = contentResolver, mainEvent)
                     },
-                    editContactInfo = {  }
+                    editContactInfo = { contactInfo ->
+                        navHostController.navigateWithArgument(contactInfoKey, contactInfo, ScreenRoutes.ContactOperations)
+                    }
+                )
+            }
+            composable(ScreenRoutes.ContactOperations.route) { navBackStackEntry ->
+                val contactInfo = navHostController.retrieveArgument<ContactInfo>(contactInfoKey)
+                val context = LocalContext.current
+                val contactOperationsViewModel = contactOperationsViewModelCreator(
+                    context = context,
+                    viewModelStoreOwner = navBackStackEntry,
+                    contactInfo = contactInfo
+                )
+                ContactOperationsScreen(
+                    contactOperationsViewModel = contactOperationsViewModel
                 )
             }
             composable(ScreenRoutes.Settings.route) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterVertically),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    items(100) { index ->
-                        Text(text = "${index.plus(1)}.Testing in Settings Screen")
-                    }
-                }
+
             }
         }
     }

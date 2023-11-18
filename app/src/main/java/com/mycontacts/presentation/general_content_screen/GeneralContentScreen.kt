@@ -26,7 +26,7 @@ fun GeneralContentScreen(
 
     val isShowNavigationBar = when (currentRoute) {
         ScreenRoutes.Pager.route -> false
-        ScreenRoutes.EditOrAdd.route -> false
+        ScreenRoutes.ContactOperations.route -> false
         else -> true
     }
 

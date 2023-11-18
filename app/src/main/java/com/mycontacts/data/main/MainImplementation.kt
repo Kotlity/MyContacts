@@ -2,7 +2,6 @@ package com.mycontacts.data.main
 
 import android.content.ContentResolver
 import android.content.ContentValues
-import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.ContactsContract
 import androidx.core.database.getStringOrNull
@@ -16,15 +15,16 @@ import com.mycontacts.utils.order.ContactOrder
 import com.mycontacts.utils.order.ContactOrderType
 import com.mycontacts.utils.ContactsMethod
 import com.mycontacts.utils.Resources
+import com.mycontacts.utils.contactId
 import com.mycontacts.utils.getColumnIndex
 import com.mycontacts.utils.retrieveBitmap
+import com.mycontacts.utils.retrieveByteArray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 
 class MainImplementation: Main {
 
@@ -91,12 +91,7 @@ class MainImplementation: Main {
     override suspend fun restoreContact(contentResolver: ContentResolver, contactInfo: ContactInfo): ContactInfo? {
         return withContext(Dispatchers.IO) {
             try {
-                val rawContactsContentValues = ContentValues().apply {
-                    putNull(ContactsContract.RawContacts.ACCOUNT_TYPE)
-                    putNull(ContactsContract.RawContacts.ACCOUNT_NAME)
-                }
-                val rawContactUri = contentResolver.insert(ContactsContract.RawContacts.CONTENT_URI, rawContactsContentValues)
-                val rawContactId = rawContactUri!!.lastPathSegment!!
+                val rawContactId = contentResolver.contactId()
 
                 val firstLastNameContentValues = ContentValues().apply {
                     put(ContactsContract.Data.RAW_CONTACT_ID, rawContactId)
@@ -123,9 +118,7 @@ class MainImplementation: Main {
                 contentResolver.insert(ContactsContract.Data.CONTENT_URI, timeStampContentValues)
 
                 contactInfo.photo?.let { bitmap ->
-                    val outputStream = ByteArrayOutputStream()
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-                    val photoByteArray = outputStream.toByteArray()
+                    val photoByteArray = bitmap.retrieveByteArray()
 
                     val photoContentValues = ContentValues().apply {
                         put(ContactsContract.Data.RAW_CONTACT_ID, rawContactId)

@@ -42,5 +42,35 @@ object Constants {
 
     const val datePattern = "dd:MM:yyyy HH:mm:ss"
 
+    const val contactInfoKey = "ContactInfoKey"
+
+    const val firstNameIsEmpty = "Firstname cannot be empty"
+    const val firstNameLessThanMinLength = "Firstname cannot contains less than 2 letters"
+    const val firstNameContainsSpaces = "Firstname cannot contains spaces"
+    const val firstNameStartsWithALowerCaseLetter = "Firstname cannot starts with a lowercase letter"
+    const val firstNameContainsDigits = "Firstname cannot contains digits"
+    const val firstNameContainsSymbols = "Firstname cannot contains symbols"
+    const val firstNameContainsMoreThanOneCapitalLetter = "Firstname cannot contains more than one capital letter"
+
+    const val lastNameIsEmpty = "Lastname cannot be empty"
+    const val lastNameLessThanMinLength = "Lastname cannot contains less than 2 letters"
+    const val lastNameContainsSpaces = "Lastname cannot contains spaces"
+    const val lastNameStartsWithALowerCaseLetter = "Lastname cannot starts with a lowercase letter"
+    const val lastNameContainsDigits = "Lastname cannot contains digits"
+    const val lastNameContainsSymbols = "Lastname cannot contains symbols"
+    const val lastNameContainsMoreThanOneCapitalLetter = "Lastname cannot contains more than one capital letter"
+
+    const val phoneNumberIsEmpty = "Phone number cannot be empty"
+    const val phoneNumberIsWrongFormat = "Phone number must comply with the international format"
+
+    const val wrongInput = "Please fill in the fields with correct input"
+    const val theSameInput = "Please change at least one input field"
+
+    const val successfulAddingContactMessage = "Contact was added successfully"
+    const val notSuccessfulAddingContactMessage = "An unknown error occurred while adding the contact"
+
+    const val successfulUpdatingContactMessage = "Contact was updated successfully"
+    const val notSuccessfulUpdatingContactMessage = "An unknown error occurred while updating the contact"
+
     val hasUserAlreadyClickedOnStartButton = booleanPreferencesKey(hasUserAlreadyClickedOnStartButtonName)
 }

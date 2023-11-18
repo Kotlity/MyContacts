@@ -6,11 +6,11 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 data class ContactInfo(
-    val id: Long,
+    val id: Long = 0,
     val photo: Bitmap? = null,
-    val firstName: String,
+    val firstName: String = "",
     val lastName: String? = null,
-    val phoneNumber: String,
-    val timeStamp: Long,
+    val phoneNumber: String = "",
+    val timeStamp: Long = 0,
     val isSelected: Boolean = false
 ): Parcelable
