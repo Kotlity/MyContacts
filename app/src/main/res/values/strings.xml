@@ -33,4 +33,13 @@
     <string name="dialAlertDialogTitle">Call</string>
     <string name="dialAlertDialogText">You will be redirected to a window with a call with a number</string>
     <string name="selectedContactsInfoHeader">Selected contacts:</string>
+    <string name="firstNameLabel">First name</string>
+    <string name="lastNameLabel">Last name</string>
+    <string name="phoneNumberLabel">Phone number</string>
+    <string name="takeAPhotoTitle">Take a photo</string>
+    <string name="selectAPhotoTitle">Select a photo</string>
+    <string name="cameraPermissionIsGranted">Permission for the camera has been granted. Take picture !</string>
+    <string name="cameraPermissionIsDenied">Permission for the camera has been denied. Please grant access through the application settings and try again</string>
+    <string name="cameraPermissionRationaleAlertDialogTitle">Permission required</string>
+    <string name="cameraPermissionRationaleAlertDialogText">To take a photo, you need to give the app access to your device\'s camera</string>
 </resources>

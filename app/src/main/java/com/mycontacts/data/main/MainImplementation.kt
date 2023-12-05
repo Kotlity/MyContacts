@@ -10,7 +10,7 @@ import com.mycontacts.domain.main.Main
 import com.mycontacts.utils.Constants.contactsNotFound
 import com.mycontacts.utils.Constants.deleteContactNotSuccessful
 import com.mycontacts.utils.Constants.emptyContactsErrorMessage
-import com.mycontacts.utils.Constants.searchDelay
+import com.mycontacts.utils.Constants._300L
 import com.mycontacts.utils.order.ContactOrder
 import com.mycontacts.utils.order.ContactOrderType
 import com.mycontacts.utils.ContactsMethod
@@ -43,7 +43,7 @@ class MainImplementation: Main {
         return flow {
             emit(Resources.Loading())
 
-            delay(searchDelay)
+            delay(_300L)
 
             val searchResult = retrieveContacts(contentResolver, ContactsMethod.SEARCH, searchContactOrder, searchQuery)
 

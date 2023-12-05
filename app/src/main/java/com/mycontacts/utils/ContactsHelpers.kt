@@ -9,6 +9,7 @@ import android.net.Uri
 import android.provider.ContactsContract
 import com.mycontacts.utils.Constants.datePattern
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -16,13 +17,17 @@ import java.util.Locale
 fun getColumnIndex(cursor: Cursor, column: String) = cursor.getColumnIndex(column)
 
 fun retrieveBitmap(contactId: String, contentResolver: ContentResolver): Bitmap? {
+    var inputStream: InputStream? = null
     return try {
         val uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, contactId)
-        val inputSteam = ContactsContract.Contacts.openContactPhotoInputStream(contentResolver, uri)
-        BitmapFactory.decodeStream(inputSteam)
+        inputStream = ContactsContract.Contacts.openContactPhotoInputStream(contentResolver, uri)
+        BitmapFactory.decodeStream(inputStream)
     } catch (e: IllegalArgumentException) {
         e.printStackTrace()
         null
+    }
+    finally {
+        inputStream?.close()
     }
 }
 
@@ -42,11 +47,20 @@ fun ContentResolver.contactId(): String {
 }
 
 fun Uri.uriToBitmap(contentResolver: ContentResolver): Bitmap? {
+    var inputStream: InputStream? = null
     return try {
-        val inputStream = contentResolver.openInputStream(this)
+        inputStream = contentResolver.openInputStream(this)
         BitmapFactory.decodeStream(inputStream)
-    } catch (_: Exception) { null }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
+    finally {
+        inputStream?.close()
+    }
 }
+
+fun String.stringToUri(): Uri = Uri.parse(this)
 
 fun convertTimestamp(timeStamp: Long): String = SimpleDateFormat(datePattern, Locale.ROOT).format(Date(timeStamp))
 

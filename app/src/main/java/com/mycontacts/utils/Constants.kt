@@ -9,14 +9,22 @@ object Constants {
     const val second = 2
     const val third = 3
     const val pagerImageSmallSizeInPixels = 512
+
+    const val _500 = 500
     const val _1000 = 1000
 
-    const val searchDelay = 300L
-    const val splashDelay = 500L
+    const val _300L = 300L
+    const val _500L = 500L
 
     const val _06Float = 0.6f
     const val _04Float = 0.4f
     const val _05Float = 0.5f
+    const val _075Float = 0.75f
+    const val _085Float = 0.85f
+    const val _1Float = 1f
+
+    const val _180f = 180f
+    const val _0f = 0f
 
     val _15sp = 15.sp
     val _16sp = 16.sp
@@ -67,10 +75,19 @@ object Constants {
     const val theSameInput = "Please change at least one input field"
 
     const val successfulAddingContactMessage = "Contact was added successfully"
-    const val notSuccessfulAddingContactMessage = "An unknown error occurred while adding the contact"
+    const val unsuccessfulAddingContactMessage = "An unknown error occurred while adding the contact"
 
     const val successfulUpdatingContactMessage = "Contact was updated successfully"
-    const val notSuccessfulUpdatingContactMessage = "An unknown error occurred while updating the contact"
+    const val unsuccessfulUpdatingContactMessage = "An unknown error occurred while updating the contact"
+
+    const val successfulPhotoDeletion = "The photo was deleted successful"
+    const val unsuccessfulPhotoDeletion = "An unknown error occurred while deleting the photo"
+
+    const val successfulLastNameDeletion = "Last name was deleted successful"
+    const val unsuccessfulLastNameDeletion = "An unknown error occurred while deleting last name"
+
+    const val updateContactButtonText = "Update contact"
+    const val addContactButtonText = "Add contact"
 
     val hasUserAlreadyClickedOnStartButton = booleanPreferencesKey(hasUserAlreadyClickedOnStartButtonName)
 }

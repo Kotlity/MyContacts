@@ -1,6 +1,7 @@
 package com.mycontacts.presentation.contact_operations.viewmodels
 
 import android.graphics.Bitmap
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,17 +10,23 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.domain.contactOperations.ContactOperationsInterface
+import com.mycontacts.domain.contactOperations.FilePhotoPathCreatorInterface
 import com.mycontacts.presentation.contact_operations.events.ContactOperationsEvent
 import com.mycontacts.presentation.contact_operations.events.ContactOperationsResultEvent
 import com.mycontacts.presentation.contact_operations.states.ContactOperationsButtonState
 import com.mycontacts.presentation.contact_operations.states.ContactTextFieldsState
 import com.mycontacts.presentation.contact_operations.states.DeleteIconsVisibilityState
 import com.mycontacts.presentation.contact_operations.viewmodels.factory.ContactOperationsViewModelFactory
-import com.mycontacts.utils.Constants.notSuccessfulAddingContactMessage
-import com.mycontacts.utils.Constants.notSuccessfulUpdatingContactMessage
+import com.mycontacts.utils.Constants.unsuccessfulAddingContactMessage
+import com.mycontacts.utils.Constants.unsuccessfulUpdatingContactMessage
 import com.mycontacts.utils.Constants.successfulAddingContactMessage
+import com.mycontacts.utils.Constants.successfulLastNameDeletion
+import com.mycontacts.utils.Constants.successfulPhotoDeletion
 import com.mycontacts.utils.Constants.successfulUpdatingContactMessage
 import com.mycontacts.utils.Constants.theSameInput
+import com.mycontacts.utils.Constants.unsuccessfulLastNameDeletion
+import com.mycontacts.utils.Constants.unsuccessfulPhotoDeletion
+import com.mycontacts.utils.Constants.updateContactButtonText
 import com.mycontacts.utils.Constants.wrongInput
 import com.mycontacts.utils.ContactOperations
 import com.mycontacts.utils.validation.ValidationStatus
@@ -34,6 +41,7 @@ import kotlinx.coroutines.launch
 
 class ContactOperationsViewModel @AssistedInject constructor(
     private val contactOperations: ContactOperationsInterface,
+    private val filePhotoPathCreator: FilePhotoPathCreatorInterface,
     @Assisted
     private val contactInfo: ContactInfo?
 ): ViewModel() {
@@ -41,14 +49,44 @@ class ContactOperationsViewModel @AssistedInject constructor(
     var editableContactInfo by mutableStateOf(ContactInfo())
         private set
 
+    var isModalBottomSheetActive by mutableStateOf(false)
+        private set
+
     var contactTextFields by mutableStateOf(ContactTextFieldsState())
+        private set
+
+    var firstNameValidationStatus by derivedStateOf {
+        mutableStateOf<ValidationStatus>(ValidationStatus.Unspecified)
+    }.value
+        private set
+
+    var lastNameValidationStatus by derivedStateOf {
+        mutableStateOf<ValidationStatus>(ValidationStatus.Unspecified)
+    }.value
+        private set
+
+    var phoneNumberValidationStatus by derivedStateOf {
+        mutableStateOf<ValidationStatus>(ValidationStatus.Unspecified)
+    }.value
         private set
 
     var contactOperationsButton by mutableStateOf(ContactOperationsButtonState())
         private set
 
-    var deleteIconsVisibility by mutableStateOf(DeleteIconsVisibilityState(isDeleteContactInfoPhotoIcon = contactInfo != null, isDeleteContactInfoLastNameIcon = contactInfo != null))
+    var deleteIconsVisibility by mutableStateOf(DeleteIconsVisibilityState(isDeleteContactInfoPhotoIconVisible = contactInfo != null, isDeleteContactInfoLastNameIconVisible = contactInfo != null))
         private set
+
+    var cameraPermissionRationaleAlertDialog by mutableStateOf(false)
+        private set
+
+    var filePhotoPath by mutableStateOf<String?>(null)
+        private set
+
+    private val cameraPermissionResultChannel = Channel<String>()
+    val cameraPermissionResultFlow = cameraPermissionResultChannel.receiveAsFlow()
+
+    private val deleteIconsResultChannel = Channel<String>()
+    val deleteIconsResultFlow = deleteIconsResultChannel.receiveAsFlow()
 
     private val contactOperationsResultChannel = Channel<ContactOperationsResultEvent>()
     val contactOperationsResultFlow = contactOperationsResultChannel.receiveAsFlow()
@@ -64,6 +102,9 @@ class ContactOperationsViewModel @AssistedInject constructor(
             is ContactOperationsEvent.InitialUpdate -> {
                 initialUpdate(contactOperationsEvent.contactInfo)
             }
+            is ContactOperationsEvent.UpdateCameraPermissionResult -> {
+                updateCameraPermissionResult(contactOperationsEvent.permissionResult)
+            }
             is ContactOperationsEvent.UpdateFirstNameTextField -> {
                 updateFirstNameTextField(contactOperationsEvent.firstName)
             }
@@ -76,16 +117,34 @@ class ContactOperationsViewModel @AssistedInject constructor(
             is ContactOperationsEvent.UpdatePhoto -> {
                 updatePhoto(contactOperationsEvent.bitmap)
             }
-            is ContactOperationsEvent.UpdateContactOperationsButton -> {
+            ContactOperationsEvent.UpdateFilePhotoPath -> {
+                updateFilePhotoPath()
+            }
+            ContactOperationsEvent.UpdateModalBottomSheetActiveState -> {
+                updateModalBottomSheetActiveState()
+            }
+            ContactOperationsEvent.UpdateCameraPermissionRationaleAlertDialogState -> {
+                updateCameraPermissionRationaleAlertDialogState()
+            }
+            ContactOperationsEvent.ClearFirstNameTextField -> {
+                clearFirstNameTextField()
+            }
+            ContactOperationsEvent.ClearLastNameTextField -> {
+                clearLastNameTextField()
+            }
+            ContactOperationsEvent.ClearPhoneNumberTextField -> {
+                clearPhoneNumberTextField()
+            }
+            ContactOperationsEvent.UpdateContactOperationsButton -> {
                 updateContactOperationsButton()
             }
-            is ContactOperationsEvent.UpdateOrInsertContactInfo -> {
+            ContactOperationsEvent.UpdateOrInsertContactInfo -> {
                 updateOrInsertContactInfo()
             }
-            is ContactOperationsEvent.DeleteContactInfoPhoto -> {
+            ContactOperationsEvent.DeleteContactInfoPhoto -> {
                 deleteContactInfoPhoto()
             }
-            is ContactOperationsEvent.DeleteContactInfoLastName -> {
+            ContactOperationsEvent.DeleteContactInfoLastName -> {
                 deleteContactInfoLastName()
             }
         }
@@ -100,37 +159,79 @@ class ContactOperationsViewModel @AssistedInject constructor(
             phoneNumber = contactInfo.phoneNumber,
             timeStamp = contactInfo.timeStamp
         )
+        contactOperationsButton = contactOperationsButton.copy(buttonText = updateContactButtonText)
+    }
+
+    private fun updateFilePhotoPath() {
+        viewModelScope.launch {
+            val filePath = filePhotoPathCreator.createFilePhotoPath()
+            filePhotoPath = filePath
+        }
+    }
+
+    private fun updateModalBottomSheetActiveState() {
+        isModalBottomSheetActive = !isModalBottomSheetActive
+    }
+
+    private fun updateCameraPermissionRationaleAlertDialogState() {
+        cameraPermissionRationaleAlertDialog = !cameraPermissionRationaleAlertDialog
+    }
+
+    private fun updateCameraPermissionResult(permissionResult: String) {
+        viewModelScope.launch {
+            cameraPermissionResultChannel.send(permissionResult)
+        }
     }
 
     private fun updateFirstNameTextField(firstName: String) {
-        val firstNameValidationStatus = firstName.firstNameValidation()
+        val firstNameValidation = firstName.firstNameValidation()
         editableContactInfo = editableContactInfo.copy(firstName = firstName)
-        contactTextFields = contactTextFields.copy(firstNameStatus = firstNameValidationStatus)
+        firstNameValidationStatus = firstNameValidation
+//        contactTextFields = contactTextFields.copy(firstNameStatus = firstNameValidationStatus)
+    }
+
+    private fun clearFirstNameTextField() {
+        editableContactInfo = editableContactInfo.copy(firstName = "")
     }
 
     private fun updateLastNameTextField(lastName: String) {
-        val lastNameValidationStatus = lastName.lastNameValidation()
+        val lastNameValidation = lastName.lastNameValidation()
         editableContactInfo = editableContactInfo.copy(lastName = lastName)
-        contactTextFields = contactTextFields.copy(lastNameStatus = lastNameValidationStatus)
+        lastNameValidationStatus = lastNameValidation
+//        contactTextFields = contactTextFields.copy(lastNameStatus = lastNameValidationStatus)
+    }
+
+    private fun clearLastNameTextField() {
+        editableContactInfo = editableContactInfo.copy(lastName = "")
     }
 
     private fun updatePhoneNumberTextField(phoneNumber: String) {
-        val phoneNumberValidationStatus = phoneNumber.phoneNumberValidation()
+        val phoneNumberValidation = phoneNumber.phoneNumberValidation()
         editableContactInfo = editableContactInfo.copy(phoneNumber = phoneNumber)
-        contactTextFields = contactTextFields.copy(phoneNumberStatus = phoneNumberValidationStatus)
+        phoneNumberValidationStatus = phoneNumberValidation
+//        contactTextFields = contactTextFields.copy(phoneNumberStatus = phoneNumberValidationStatus)
+    }
+
+    private fun clearPhoneNumberTextField() {
+        editableContactInfo = editableContactInfo.copy(phoneNumber = "")
     }
 
     private fun updatePhoto(photoBitmap: Bitmap) {
         editableContactInfo = editableContactInfo.copy(photo = photoBitmap)
     }
 
-    private fun isSucceedTextFieldsValidation() = if (editableContactInfo.lastName != null) {
-        contactTextFields.firstNameStatus is ValidationStatus.Success &&
-        contactTextFields.lastNameStatus is ValidationStatus.Success &&
-        contactTextFields.phoneNumberStatus is ValidationStatus.Success
+    private fun isSucceedTextFieldsValidation() = if (editableContactInfo.lastName != null || editableContactInfo.lastName?.isNotEmpty() == true) {
+        firstNameValidationStatus is ValidationStatus.Success &&
+        lastNameValidationStatus is ValidationStatus.Success &&
+        phoneNumberValidationStatus is ValidationStatus.Success
+//        contactTextFields.firstNameStatus is ValidationStatus.Success &&
+//        contactTextFields.lastNameStatus is ValidationStatus.Success &&
+//        contactTextFields.phoneNumberStatus is ValidationStatus.Success
     } else {
-        contactTextFields.firstNameStatus is ValidationStatus.Success &&
-        contactTextFields.phoneNumberStatus is ValidationStatus.Success
+        firstNameValidationStatus is ValidationStatus.Success &&
+        phoneNumberValidationStatus is ValidationStatus.Success
+//        contactTextFields.firstNameStatus is ValidationStatus.Success &&
+//        contactTextFields.phoneNumberStatus is ValidationStatus.Success
     }
 
     private fun isTheSameInput() = if (contactInfo == null) false
@@ -172,7 +273,7 @@ class ContactOperationsViewModel @AssistedInject constructor(
                         val isAllOperationsDoneSuccessful = photoOperationResult && updatingFirstNameResult && lastNameOperationResult && updatingPhoneNumberResult && updatingTimeStampResult
 
                         if (isAllOperationsDoneSuccessful) contactOperationsResultChannel.send(ContactOperationsResultEvent(message = successfulUpdatingContactMessage, isShouldNavigateBack = true))
-                        else contactOperationsResultChannel.send(ContactOperationsResultEvent(message = notSuccessfulUpdatingContactMessage))
+                        else contactOperationsResultChannel.send(ContactOperationsResultEvent(message = unsuccessfulUpdatingContactMessage))
                     } else {
                         val id = contactId()
                         val addingPhotoResult = photo?.let { contactPhotoOperations(it, id, ContactOperations.ADD) } ?: true
@@ -184,7 +285,7 @@ class ContactOperationsViewModel @AssistedInject constructor(
                         val isSuccessfulAddingResult = addingPhotoResult && addingFirstNameResult && addingLastNameResult && addingPhoneNumberResult && addingTimeStampResult
 
                         if (isSuccessfulAddingResult) contactOperationsResultChannel.send(ContactOperationsResultEvent(message = successfulAddingContactMessage, isShouldNavigateBack = true))
-                        else contactOperationsResultChannel.send(ContactOperationsResultEvent(message = notSuccessfulAddingContactMessage))
+                        else contactOperationsResultChannel.send(ContactOperationsResultEvent(message = unsuccessfulAddingContactMessage))
                     }
                 }
             }
@@ -197,8 +298,9 @@ class ContactOperationsViewModel @AssistedInject constructor(
                 val contactPhotoDeletingResult = contactOperations.contactPhotoOperations(photo, editableContactInfo.id, ContactOperations.DELETE)
                 if (contactPhotoDeletingResult) {
                     editableContactInfo = editableContactInfo.copy(photo = null)
-                    deleteIconsVisibility = deleteIconsVisibility.copy(isDeleteContactInfoPhotoIcon = false)
-                }
+                    deleteIconsVisibility = deleteIconsVisibility.copy(isDeleteContactInfoPhotoIconVisible = false)
+                    deleteIconsResultChannel.send(successfulPhotoDeletion)
+                } else deleteIconsResultChannel.send(unsuccessfulPhotoDeletion)
             }
         }
     }
@@ -209,8 +311,9 @@ class ContactOperationsViewModel @AssistedInject constructor(
                 val contactLastNameDeletingResult = contactOperations.contactLastNameOperations(lastName, editableContactInfo.id, ContactOperations.DELETE)
                 if (contactLastNameDeletingResult) {
                     editableContactInfo = editableContactInfo.copy(lastName = null)
-                    deleteIconsVisibility = deleteIconsVisibility.copy(isDeleteContactInfoLastNameIcon = false)
-                }
+                    deleteIconsVisibility = deleteIconsVisibility.copy(isDeleteContactInfoLastNameIconVisible = false)
+                    deleteIconsResultChannel.send(successfulLastNameDeletion)
+                } else deleteIconsResultChannel.send(unsuccessfulLastNameDeletion)
             }
         }
     }

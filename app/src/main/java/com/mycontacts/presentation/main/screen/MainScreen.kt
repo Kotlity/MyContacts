@@ -64,8 +64,8 @@ import com.mycontacts.utils.order.ContactOrder
 import com.mycontacts.utils.order.ContactOrderType
 import com.mycontacts.utils.StickyHeaderAction
 import com.mycontacts.utils.hideBottomSheet
-import com.mycontacts.utils.isAppHasPermissionToWriteContacts
-import com.mycontacts.utils.showSnackbar
+import com.mycontacts.utils.isAppHasPermission
+import com.mycontacts.utils.showSnackbarWithAction
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -151,8 +151,7 @@ fun MainScreen(
 
     LaunchedEffect(key1 = Unit) {
         deleteContactResult.collect { deleteContactResult ->
-            showSnackbar(
-                snackbarHostState = snackbarHostState,
+            snackbarHostState.showSnackbarWithAction(
                 message = deleteContactResult.result,
                 undo = if (deleteContactResult.result == deleteContactSuccessful) deleteContactUndo else null,
                 onUndoClick = {
@@ -172,8 +171,7 @@ fun MainScreen(
 
     LaunchedEffect(key1 = Unit) {
         deleteSelectedContactsResult.collect { deleteContactsResult ->
-            showSnackbar(
-                snackbarHostState = snackbarHostState,
+            snackbarHostState.showSnackbarWithAction(
                 message = deleteContactsResult.message,
                 undo = if (deleteContactsResult.message == deleteSelectedContactsSuccessful) deleteContactUndo else null,
                 onUndoClick = {
@@ -227,7 +225,7 @@ fun MainScreen(
                         .fillMaxWidth()
                         .padding(vertical = dimensionResource(id = R.dimen._20dp)),
                     onEditContactClick = {
-                        if (isAppHasPermissionToWriteContacts(context)) {
+                        if (isAppHasPermission(context, Manifest.permission.WRITE_CONTACTS)) {
                             coroutineScope.launch { hideBottomSheet(modalBottomSheetState, event) }
                             contactActionsModalBottomSheetState.contactInfo?.let { contactInfo -> editContactInfo(contactInfo) }
                         } else {
@@ -236,7 +234,7 @@ fun MainScreen(
                         }
                     },
                     onDeleteContactClick = {
-                        if (isAppHasPermissionToWriteContacts(context)) {
+                        if (isAppHasPermission(context, Manifest.permission.WRITE_CONTACTS)) {
                             coroutineScope.launch { hideBottomSheet(modalBottomSheetState, event) }
                             contactActionsModalBottomSheetState.apply {
                                 index?.let { index ->
@@ -337,7 +335,7 @@ fun MainScreen(
                                 .padding(horizontal = dimensionResource(id = R.dimen._10dp)),
                             selectedContactsInfoCount = selectedSearchContacts.size,
                             onDeleteIconClick = {
-                                if (isAppHasPermissionToWriteContacts(context)) {
+                                if (isAppHasPermission(context, Manifest.permission.WRITE_CONTACTS)) {
                                     event(MainEvent.DeleteSelectedContacts(selectedSearchContacts, ContactsMethod.SEARCH))
                                 } else event(MainEvent.Permissions.UpdateWriteContactsPermissionRationaleAlertDialog(ContactAction.DELETE_MULTIPLE))
                             }
@@ -408,7 +406,7 @@ fun MainScreen(
                         .padding(horizontal = dimensionResource(id = R.dimen._10dp)),
                     selectedContactsInfoCount = selectedGeneralContacts.size,
                     onDeleteIconClick = {
-                        if (isAppHasPermissionToWriteContacts(context)) {
+                        if (isAppHasPermission(context, Manifest.permission.WRITE_CONTACTS)) {
                             event(MainEvent.DeleteSelectedContacts(selectedGeneralContacts, ContactsMethod.GENERAL))
                         } else event(MainEvent.Permissions.UpdateWriteContactsPermissionRationaleAlertDialog(ContactAction.DELETE_MULTIPLE))
                     }

@@ -77,7 +77,9 @@ fun NavigationHost(
                     contactInfo = contactInfo
                 )
                 ContactOperationsScreen(
-                    contactOperationsViewModel = contactOperationsViewModel
+                    contactOperationsViewModel = contactOperationsViewModel,
+                    event = contactOperationsViewModel::onEvent,
+                    onNavigateUp = { navHostController.navigateUp() }
                 )
             }
             composable(ScreenRoutes.Settings.route) {

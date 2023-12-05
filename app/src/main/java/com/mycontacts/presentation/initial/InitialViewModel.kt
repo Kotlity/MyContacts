@@ -6,7 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mycontacts.domain.pager.Pager
-import com.mycontacts.utils.Constants.splashDelay
+import com.mycontacts.utils.Constants._500L
 import com.mycontacts.utils.ScreenRoutes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -31,7 +31,7 @@ class InitialViewModel @Inject constructor(private val pager: Pager): ViewModel(
         pager.hasUserAlreadyPressedStartButton().onEach { hasUserAlreadyPressedStartButton ->
             startDestination = if (hasUserAlreadyPressedStartButton) ScreenRoutes.Main.route
             else ScreenRoutes.Pager.route
-            delay(splashDelay)
+            delay(_500L)
             isShouldShowSplashScreen = false
         }.launchIn(viewModelScope)
     }

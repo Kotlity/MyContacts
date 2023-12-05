@@ -7,19 +7,19 @@ import com.mycontacts.domain.contactOperations.ContactOperationsInterface
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.components.ViewModelComponent
+import dagger.hilt.android.components.ActivityComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.android.scopes.ViewModelScoped
+import dagger.hilt.android.scopes.ActivityScoped
 
 @Module
-@InstallIn(ViewModelComponent::class)
+@InstallIn(ActivityComponent::class)
 object ContactOperationsModule {
 
     @Provides
-    @ViewModelScoped
+    @ActivityScoped
     fun provideContentResolver(@ApplicationContext context: Context) = context.contentResolver
 
     @Provides
-    @ViewModelScoped
+    @ActivityScoped
     fun provideContactOperations(contentResolver: ContentResolver): ContactOperationsInterface = ContactOperationsImplementation(contentResolver)
 }

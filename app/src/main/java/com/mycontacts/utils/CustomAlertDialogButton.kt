@@ -1,13 +1,12 @@
-package com.mycontacts.presentation.main.composables
+package com.mycontacts.utils
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import com.mycontacts.utils.Constants
 
 @Composable
-fun AlertDialogButton(
+fun CustomAlertDialogButton(
     text: String,
     onClick: () -> Unit
 ) {

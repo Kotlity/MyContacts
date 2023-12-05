@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import com.mycontacts.R
 import com.mycontacts.data.contacts.ContactInfo
+import com.mycontacts.utils.CustomAlertDialogButton
 import com.mycontacts.utils.Constants._1000
 import com.mycontacts.utils.Constants._18sp
 import com.mycontacts.utils.Constants._22sp
@@ -50,13 +51,13 @@ fun DialAlertDialog(
     AlertDialog(
         onDismissRequest = onDismissClick,
         confirmButton = {
-            AlertDialogButton(
+            CustomAlertDialogButton(
                 text = stringResource(id = R.string.ok),
                 onClick = onConfirmClick
             )
         },
         dismissButton = {
-            AlertDialogButton(
+            CustomAlertDialogButton(
                 text = stringResource(id = R.string.dismiss),
                 onClick = onDismissClick
             )
