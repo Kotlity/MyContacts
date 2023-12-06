@@ -65,6 +65,9 @@ fun NavigationHost(
                     },
                     editContactInfo = { contactInfo ->
                         navHostController.navigateWithArgument(contactInfoKey, contactInfo, ScreenRoutes.ContactOperations)
+                    },
+                    addContactInfo = {
+                        navHostController.navigate(ScreenRoutes.ContactOperations.route)
                     }
                 )
             }

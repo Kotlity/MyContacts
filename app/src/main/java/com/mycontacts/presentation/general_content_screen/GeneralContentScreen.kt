@@ -41,7 +41,7 @@ fun GeneralContentScreen(
                     route = currentRoute,
                     scrollBehavior = topAppBarScrollBehaviour,
                     onNavigationIconClick = {
-                        navHostController.popBackStack()
+                        navHostController.navigateUp()
                     }
                 )
             }

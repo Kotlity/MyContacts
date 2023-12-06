@@ -11,11 +11,15 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -32,12 +36,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import com.mycontacts.R
 import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.presentation.main.composables.ContactActionsModalBottomSheet
 import com.mycontacts.presentation.main.composables.ContactGeneralList
 import com.mycontacts.presentation.main.composables.ContactSearchList
 import com.mycontacts.presentation.main.composables.ContactsOrderSection
+import com.mycontacts.presentation.main.composables.CustomExtendedFloatingActionButton
 import com.mycontacts.presentation.main.events.MainEvent
 import com.mycontacts.presentation.main.composables.CustomProgressBar
 import com.mycontacts.presentation.main.composables.CustomSearchBar
@@ -67,6 +73,7 @@ import com.mycontacts.utils.hideBottomSheet
 import com.mycontacts.utils.isAppHasPermission
 import com.mycontacts.utils.showSnackbarWithAction
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -76,7 +83,8 @@ import kotlinx.coroutines.launch
 fun MainScreen(
     mainViewModel: MainViewModel,
     event: (MainEvent) -> Unit,
-    editContactInfo: (ContactInfo) -> Unit
+    editContactInfo: (ContactInfo) -> Unit,
+    addContactInfo: () -> Unit
 ) {
     val isUserHasPermissionsForMainScreenState = mainViewModel.mainScreenPermissionsState
     val contactsState = mainViewModel.contactsState
@@ -93,6 +101,12 @@ fun MainScreen(
     val writeContactsPermissionResult = mainViewModel.writeContactsPermissionResult.receiveAsFlow()
     val deleteContactResult = mainViewModel.deleteContactResult.receiveAsFlow()
     val deleteSelectedContactsResult = mainViewModel.deleteSelectedContactsResult.receiveAsFlow()
+    
+    val isExpandedFloatingActionButtonState = mainViewModel.isExpandedFloatingActionButtonState
+    
+    val mutableInteractionSource = remember {
+        MutableInteractionSource()
+    }
 
     val context = LocalContext.current
 
@@ -138,6 +152,16 @@ fun MainScreen(
                     event(MainEvent.UpdateContactOrderSectionVisibility(!isScrolling))
                 }
         }
+    }
+    
+    LaunchedEffect(key1 = mutableInteractionSource) {
+        mutableInteractionSource.interactions
+            .filterIsInstance<PressInteraction>()
+            .distinctUntilChanged()
+            .collect { pressInteraction ->
+                if (pressInteraction is PressInteraction.Press) event(MainEvent.ChangeIsExpandedFloatingActionButtonState(true))
+                else event(MainEvent.ChangeIsExpandedFloatingActionButtonState(false))
+            }
     }
 
     LaunchedEffect(key1 = Unit) {
@@ -304,7 +328,18 @@ fun MainScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        floatingActionButton = {
+            CustomExtendedFloatingActionButton(
+                modifier = Modifier
+                    .padding(dimensionResource(id = R.dimen._5dp)),
+                text = stringResource(id = R.string.addContact),
+                icon = Icons.Default.Add,
+                onClick = addContactInfo,
+                isExpanded = isExpandedFloatingActionButtonState,
+                mutableInteractionSource = mutableInteractionSource
+            )
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier

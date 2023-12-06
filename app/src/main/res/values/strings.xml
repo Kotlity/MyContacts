@@ -19,6 +19,7 @@
     <string name="contactOrderDescending">Descending</string>
     <string name="contactOrderSortingTitle">Sorting contacts</string>
     <string name="searchContactsOrderSortingTitle">Sorting search contacts</string>
+    <string name="addContact">Add contact</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="confirm">Confirm</string>

@@ -74,6 +74,8 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
 
     var isSelectionSearchModeActive by derivedStateOf { mutableStateOf(false) }.value
 
+    var isExpandedFloatingActionButtonState by derivedStateOf { mutableStateOf(false) }.value
+
     private var contactsJob: Job? = null
 
     private var searchJob: Job? = null
@@ -153,6 +155,9 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
             }
             is MainEvent.UpdateSelectedContactsByItsHeader -> {
                 updateSelectedContactsByItsHeader(mainEvent.header, mainEvent.stickyHeaderAction)
+            }
+            is MainEvent.ChangeIsExpandedFloatingActionButtonState -> {
+                changeIsExpandedFloatingActionButtonState(mainEvent.isExpanded)
             }
             MainEvent.ClearSearchQuery -> {
                 clearSearchQuery()
@@ -446,6 +451,10 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
 
     private fun updateSelectionSearchMode(selectionSearchMode: Boolean) {
         isSelectionSearchModeActive = selectionSearchMode
+    }
+
+    private fun changeIsExpandedFloatingActionButtonState(isExpanded: Boolean) {
+        isExpandedFloatingActionButtonState = isExpanded
     }
 
     private fun updateIsContactSelectedFieldByClickOnContactInfo(header: Char, index: Int) {

@@ -34,6 +34,7 @@ sealed class MainEvent {
     data class UpdateIsContactSelectedFieldByClickOnContactInfo(val header: Char, val index: Int): MainEvent()
     data class UpdateIsSearchContactSelectedFieldByClickOnContactInfo(val index: Int): MainEvent()
     data class UpdateSelectedContactsByItsHeader(val header: Char, val stickyHeaderAction: StickyHeaderAction): MainEvent()
+    data class ChangeIsExpandedFloatingActionButtonState(val isExpanded: Boolean): MainEvent()
     object ClearSearchQuery: MainEvent()
     object UpdateModalBottomSheetVisibility: MainEvent()
 }
