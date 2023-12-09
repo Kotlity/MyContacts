@@ -97,9 +97,6 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
             is MainEvent.Permissions.UpdateWriteContactsPermissionRationaleAlertDialog -> {
                 updateWriteContactsPermissionRationaleAlertDialog(mainEvent.contactAction)
             }
-            MainEvent.Permissions.ClearWriteContactsPermissionRationaleAlertDialog -> {
-                clearWriteContactsPermissionRationaleAlertDialog()
-            }
             is MainEvent.GetAllContacts -> {
                 if (checkIfTheSameContactOrderClicked(mainEvent.contactOrder)) return
                 getAllContacts(contentResolver, mainEvent.contactOrder)
@@ -158,6 +155,9 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
             }
             is MainEvent.ChangeIsExpandedFloatingActionButtonState -> {
                 changeIsExpandedFloatingActionButtonState(mainEvent.isExpanded)
+            }
+            MainEvent.Permissions.ClearWriteContactsPermissionRationaleAlertDialog -> {
+                clearWriteContactsPermissionRationaleAlertDialog()
             }
             MainEvent.ClearSearchQuery -> {
                 clearSearchQuery()

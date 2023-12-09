@@ -2,13 +2,17 @@ package com.mycontacts.utils
 
 import android.content.ContentResolver
 import android.content.ContentValues
+import android.content.Context
 import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.ContactsContract
+import android.util.Log
+import androidx.core.content.FileProvider
 import com.mycontacts.utils.Constants.datePattern
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -46,6 +50,17 @@ fun ContentResolver.contactId(): String {
     return contactUri!!.lastPathSegment!!
 }
 
+fun createTempFilePhotoPath(context: Context): Uri {
+    val currentTime = System.currentTimeMillis()
+    val photoName = "picture_$currentTime"
+    val photoFormat = ".png"
+    val authority = "com.mycontacts.provider"
+    val tempFile = File.createTempFile(photoName, photoFormat, context.cacheDir).apply { createNewFile() }
+    val photoFileUri = FileProvider.getUriForFile(context.applicationContext, authority, tempFile)
+    Log.e("MyTag", "photo file uri: $photoFileUri")
+    return photoFileUri
+}
+
 fun Uri.uriToBitmap(contentResolver: ContentResolver): Bitmap? {
     var inputStream: InputStream? = null
     return try {
@@ -59,8 +74,6 @@ fun Uri.uriToBitmap(contentResolver: ContentResolver): Bitmap? {
         inputStream?.close()
     }
 }
-
-fun String.stringToUri(): Uri = Uri.parse(this)
 
 fun convertTimestamp(timeStamp: Long): String = SimpleDateFormat(datePattern, Locale.ROOT).format(Date(timeStamp))
 

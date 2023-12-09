@@ -18,7 +18,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import com.mycontacts.R
-import com.mycontacts.utils.Constants._500
+import com.mycontacts.utils.Constants._1000
 
 @Composable
 fun ContactInfoPhoto(
@@ -28,7 +28,7 @@ fun ContactInfoPhoto(
     
     val photoBorderColor = animateColorAsState(
         targetValue = photoBitmap?.let { Color.Green } ?: Color.Red,
-        animationSpec = tween(durationMillis = _500)
+        animationSpec = tween(durationMillis = _1000)
     ).value
     
     if (photoBitmap != null) {

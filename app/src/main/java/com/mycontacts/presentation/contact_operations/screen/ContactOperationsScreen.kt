@@ -1,6 +1,8 @@
 package com.mycontacts.presentation.contact_operations.screen
 
 import android.Manifest
+import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,8 +21,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,21 +31,21 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.repeatOnLifecycle
 import com.mycontacts.R
 import com.mycontacts.presentation.contact_operations.composables.ContactImageActionModalBottomSheet
 import com.mycontacts.presentation.contact_operations.composables.ContactInfoButtonOperations
@@ -58,11 +58,11 @@ import com.mycontacts.presentation.contact_operations.viewmodels.ContactOperatio
 import com.mycontacts.utils.Constants._05Float
 import com.mycontacts.utils.Constants._075Float
 import com.mycontacts.utils.Constants._085Float
+import com.mycontacts.utils.Constants._1000
 import com.mycontacts.utils.Constants._16sp
 import com.mycontacts.utils.Constants._18sp
-import com.mycontacts.utils.Constants._500
+import com.mycontacts.utils.createTempFilePhotoPath
 import com.mycontacts.utils.isAppHasPermission
-import com.mycontacts.utils.stringToUri
 import com.mycontacts.utils.uriToBitmap
 import com.mycontacts.utils.validation.ValidationStatus
 import kotlinx.coroutines.launch
@@ -102,7 +102,9 @@ fun ContactOperationsScreen(
 
     val cameraPermissionRationaleAlertDialog = contactOperationsViewModel.cameraPermissionRationaleAlertDialog
 
-    val filePhotoPath = contactOperationsViewModel.filePhotoPath
+    var tempFilePhotoPath by remember {
+        mutableStateOf<Uri>(Uri.EMPTY)
+    }
 
     val context = LocalContext.current
     val contentResolver = context.contentResolver
@@ -111,28 +113,22 @@ fun ContactOperationsScreen(
 
     val coroutineScope = rememberCoroutineScope()
 
-    val scaffoldScrollState = rememberScrollState()
-
     val snackbarHostState = remember {
         SnackbarHostState()
     }
 
-    val cameraLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicture()) { isSuccessful ->
-        if (isSuccessful) {
-            try {
-                val filePhotoPathUri = filePhotoPath!!.stringToUri()
-                filePhotoPathUri.uriToBitmap(contentResolver)?.let { bitmap ->
-                    event(ContactOperationsEvent.UpdatePhoto(bitmap))
-                }
-            } catch (e: Exception) { e.printStackTrace() }
+    val cameraLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicture()) {
+        tempFilePhotoPath.uriToBitmap(contentResolver)?.let { bitmap ->
+            event(ContactOperationsEvent.UpdatePhoto(bitmap))
         }
     }
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
-            event(ContactOperationsEvent.UpdateFilePhotoPath)
             event(ContactOperationsEvent.UpdateCameraPermissionResult(permissionResult = context.getString(R.string.cameraPermissionIsGranted)))
-            cameraLauncher.launch(filePhotoPath!!.stringToUri())
+            val path = createTempFilePhotoPath(context)
+            tempFilePhotoPath = path
+            cameraLauncher.launch(tempFilePhotoPath)
         } else event(ContactOperationsEvent.UpdateCameraPermissionRationaleAlertDialogState)
     }
 
@@ -143,8 +139,6 @@ fun ContactOperationsScreen(
             }
         }
     }
-
-    val lifecycleOwner = LocalLifecycleOwner.current
 
     val softwareKeyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -164,26 +158,23 @@ fun ContactOperationsScreen(
     LaunchedEffect(
         deleteIconsResultFlow,
         contactOperationsResultFlow,
-        cameraPermissionResultFlow,
-        lifecycleOwner.lifecycle
+        cameraPermissionResultFlow
     ) {
-        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            launch {
-                deleteIconsResultFlow.collect { message ->
-                    snackbarHostState.showSnackbar(message = message)
-                }
+        launch {
+            deleteIconsResultFlow.collect { message ->
+                snackbarHostState.showSnackbar(message = message)
             }
-            launch {
-                contactOperationsResultFlow.collect { contactOperationsResult ->
-                    snackbarHostState.showSnackbar(message = contactOperationsResult.message)
-                    if (contactOperationsResult.isShouldNavigateBack) onNavigateUp()
-                }
+        }
+        launch {
+            contactOperationsResultFlow.collect { contactOperationsResult ->
+                snackbarHostState.showSnackbar(message = contactOperationsResult.message)
+                if (contactOperationsResult.isShouldNavigateBack) onNavigateUp()
             }
-            launch {
-                cameraPermissionResultFlow.collect { permissionResultMessage ->
-                    if (permissionResultMessage == context.getString(R.string.cameraPermissionIsGranted)) snackbarHostState.showSnackbar(message = permissionResultMessage)
-                    else snackbarHostState.showSnackbar(message = permissionResultMessage, duration = SnackbarDuration.Long)
-                }
+        }
+        launch {
+            cameraPermissionResultFlow.collect { permissionResultMessage ->
+                if (permissionResultMessage == context.getString(R.string.cameraPermissionIsGranted)) Toast.makeText(context, permissionResultMessage, Toast.LENGTH_SHORT).show()
+                else snackbarHostState.showSnackbar(message = permissionResultMessage, duration = SnackbarDuration.Long)
             }
         }
     }
@@ -194,23 +185,28 @@ fun ContactOperationsScreen(
             onDismiss = { event(ContactOperationsEvent.UpdateModalBottomSheetActiveState) },
             onTakeAPhoto = {
                 if (isAppHasPermission(context, Manifest.permission.CAMERA)) {
-                    event(ContactOperationsEvent.UpdateFilePhotoPath)
                     coroutineScope.launch {
                         modalBottomSheetState.hide()
                         event(ContactOperationsEvent.UpdateModalBottomSheetActiveState)
                     }
-                    cameraLauncher.launch(filePhotoPath!!.stringToUri())
+                    val path = createTempFilePhotoPath(context)
+                    tempFilePhotoPath = path
+                    cameraLauncher.launch(tempFilePhotoPath)
                 } else {
-                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                     coroutineScope.launch {
                         modalBottomSheetState.hide()
                         event(ContactOperationsEvent.UpdateModalBottomSheetActiveState)
                     }
+                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                 }
             },
             onSelectAPhoto = {
                 if (isPhotoPickerAvailable(context)) {
                     photoPickerLauncher.launch(PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly))
+                }
+                coroutineScope.launch {
+                    modalBottomSheetState.hide()
+                    event(ContactOperationsEvent.UpdateModalBottomSheetActiveState)
                 }
             }
         )
@@ -227,14 +223,16 @@ fun ContactOperationsScreen(
                 event(ContactOperationsEvent.UpdateCameraPermissionRationaleAlertDialogState)
                 cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
             },
-            onDismissButtonClick = { event(ContactOperationsEvent.UpdateCameraPermissionRationaleAlertDialogState) }
+            onDismissButtonClick = {
+                event(ContactOperationsEvent.UpdateCameraPermissionRationaleAlertDialogState)
+                event(ContactOperationsEvent.UpdateCameraPermissionResult(permissionResult = context.getString(R.string.cameraPermissionIsDenied)))
+            }
         )
     }
 
     Scaffold(
         modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scaffoldScrollState),
+            .fillMaxSize(),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
         Column(
@@ -250,7 +248,7 @@ fun ContactOperationsScreen(
             ) {
                 AnimatedContent(
                     targetState = photoBitmap,
-                    transitionSpec = { fadeIn(animationSpec = tween(durationMillis = _500)) togetherWith fadeOut(animationSpec = tween(durationMillis = _500)) }
+                    transitionSpec = { fadeIn(animationSpec = tween(durationMillis = _1000)) togetherWith fadeOut(animationSpec = tween(durationMillis = _1000)) }
                 ) { bitmap ->
                     ContactInfoPhoto(
                         photoBitmap = bitmap,
@@ -292,7 +290,6 @@ fun ContactOperationsScreen(
                             onShowKeyboard = { softwareKeyboardController?.show() },
                             onButtonClick = { phoneNumberFocusRequester.requestFocus() }
                         )
-//                        Spacer(modifier = Modifier.weight(_1Float))
                         DeletePhotoOrLastNameIcon(onIconClick = { event(ContactOperationsEvent.DeleteContactInfoLastName) })
                     }
                 } else {

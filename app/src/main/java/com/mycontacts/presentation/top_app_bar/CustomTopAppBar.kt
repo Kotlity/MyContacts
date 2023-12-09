@@ -21,28 +21,55 @@ fun CustomTopAppBar(
     scrollBehavior: TopAppBarScrollBehavior,
     onNavigationIconClick: () -> Unit
 ) {
-    CenterAlignedTopAppBar(
-        title = {
-            Text(
-                text = route,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontSize = _22sp,
-                    fontWeight = FontWeight.W900
-                )
-            )
-        },
-        navigationIcon = {
-            if (route != ScreenRoutes.Main.route) {
-                IconButton(
-                    onClick = { onNavigationIconClick() }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = null
+    if (route != ScreenRoutes.ContactOperations.route) {
+        CenterAlignedTopAppBar(
+            title = {
+                Text(
+                    text = route,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = _22sp,
+                        fontWeight = FontWeight.W900
                     )
+                )
+            },
+            navigationIcon = {
+                if (route != ScreenRoutes.Main.route) {
+                    IconButton(
+                        onClick = { onNavigationIconClick() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = null
+                        )
+                    }
+                }
+            },
+            scrollBehavior = scrollBehavior
+        )
+    } else {
+        CenterAlignedTopAppBar(
+            title = {
+                Text(
+                    text = route,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = _22sp,
+                        fontWeight = FontWeight.W900
+                    )
+                )
+            },
+            navigationIcon = {
+                if (route != ScreenRoutes.Main.route) {
+                    IconButton(
+                        onClick = { onNavigationIconClick() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = null
+                        )
+                    }
                 }
             }
-        },
-        scrollBehavior = scrollBehavior
-    )
+        )
+    }
+
 }

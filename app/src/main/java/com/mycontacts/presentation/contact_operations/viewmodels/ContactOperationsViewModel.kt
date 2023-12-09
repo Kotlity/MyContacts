@@ -10,7 +10,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.domain.contactOperations.ContactOperationsInterface
-import com.mycontacts.domain.contactOperations.FilePhotoPathCreatorInterface
 import com.mycontacts.presentation.contact_operations.events.ContactOperationsEvent
 import com.mycontacts.presentation.contact_operations.events.ContactOperationsResultEvent
 import com.mycontacts.presentation.contact_operations.states.ContactOperationsButtonState
@@ -41,7 +40,6 @@ import kotlinx.coroutines.launch
 
 class ContactOperationsViewModel @AssistedInject constructor(
     private val contactOperations: ContactOperationsInterface,
-    private val filePhotoPathCreator: FilePhotoPathCreatorInterface,
     @Assisted
     private val contactInfo: ContactInfo?
 ): ViewModel() {
@@ -79,9 +77,6 @@ class ContactOperationsViewModel @AssistedInject constructor(
     var cameraPermissionRationaleAlertDialog by mutableStateOf(false)
         private set
 
-    var filePhotoPath by mutableStateOf<String?>(null)
-        private set
-
     private val cameraPermissionResultChannel = Channel<String>()
     val cameraPermissionResultFlow = cameraPermissionResultChannel.receiveAsFlow()
 
@@ -116,9 +111,6 @@ class ContactOperationsViewModel @AssistedInject constructor(
             }
             is ContactOperationsEvent.UpdatePhoto -> {
                 updatePhoto(contactOperationsEvent.bitmap)
-            }
-            ContactOperationsEvent.UpdateFilePhotoPath -> {
-                updateFilePhotoPath()
             }
             ContactOperationsEvent.UpdateModalBottomSheetActiveState -> {
                 updateModalBottomSheetActiveState()
@@ -160,13 +152,6 @@ class ContactOperationsViewModel @AssistedInject constructor(
             timeStamp = contactInfo.timeStamp
         )
         contactOperationsButton = contactOperationsButton.copy(buttonText = updateContactButtonText)
-    }
-
-    private fun updateFilePhotoPath() {
-        viewModelScope.launch {
-            val filePath = filePhotoPathCreator.createFilePhotoPath()
-            filePhotoPath = filePath
-        }
     }
 
     private fun updateModalBottomSheetActiveState() {

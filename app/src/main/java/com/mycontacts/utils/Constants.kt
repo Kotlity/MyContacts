@@ -11,6 +11,7 @@ object Constants {
     const val pagerImageSmallSizeInPixels = 512
 
     const val _500 = 500
+    const val _800 = 800
     const val _1000 = 1000
 
     const val _300L = 300L

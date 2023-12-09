@@ -9,8 +9,11 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Column
@@ -29,14 +32,20 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.mycontacts.R
 import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.presentation.main.composables.ContactActionsModalBottomSheet
@@ -55,6 +64,7 @@ import com.mycontacts.presentation.main.composables.SearchContactsFilteringSecti
 import com.mycontacts.presentation.main.composables.SelectedContactsInfoHeader
 import com.mycontacts.presentation.main.composables.WriteContactsPermissionRationaleAlertDialog
 import com.mycontacts.presentation.main.viewmodels.MainViewModel
+import com.mycontacts.utils.Constants._800
 import com.mycontacts.utils.Constants.contactsNotFound
 import com.mycontacts.utils.Constants.deleteContactSuccessful
 import com.mycontacts.utils.Constants.deleteContactUndo
@@ -101,7 +111,7 @@ fun MainScreen(
     val writeContactsPermissionResult = mainViewModel.writeContactsPermissionResult.receiveAsFlow()
     val deleteContactResult = mainViewModel.deleteContactResult.receiveAsFlow()
     val deleteSelectedContactsResult = mainViewModel.deleteSelectedContactsResult.receiveAsFlow()
-    
+
     val isExpandedFloatingActionButtonState = mainViewModel.isExpandedFloatingActionButtonState
     
     val mutableInteractionSource = remember {
@@ -109,6 +119,12 @@ fun MainScreen(
     }
 
     val context = LocalContext.current
+
+    val screenDensity = LocalDensity.current
+    val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
+    val screenHeightPixels = with(screenDensity) {
+        screenHeightDp.roundToPx()
+    }
 
     val snackbarHostState = remember {
         SnackbarHostState()
@@ -119,6 +135,10 @@ fun MainScreen(
     val coroutineScope = rememberCoroutineScope()
 
     val lazyListState = rememberLazyListState()
+
+    var isGeneralListScrolling by remember {
+        mutableStateOf(lazyListState.isScrollInProgress)
+    }
 
     val permissionToAccessAllFilesLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -143,13 +163,21 @@ fun MainScreen(
         }
     }
 
+    LaunchedEffect(key1 = lazyListState.isScrollInProgress) {
+        snapshotFlow { lazyListState.isScrollInProgress }
+            .distinctUntilChanged()
+            .collect { isScrolling ->
+                isGeneralListScrolling = isScrolling
+            }
+    }
+
     if (!isSelectionGeneralModeActiveState) {
         LaunchedEffect(key1 = lazyListState) {
             snapshotFlow { lazyListState.firstVisibleItemIndex }
                 .map { firstVisibleItemIndex -> firstVisibleItemIndex > 0 }
                 .distinctUntilChanged()
-                .collect { isScrolling ->
-                    event(MainEvent.UpdateContactOrderSectionVisibility(!isScrolling))
+                .collect { isScrolled ->
+                    event(MainEvent.UpdateContactOrderSectionVisibility(!isScrolled))
                 }
         }
     }
@@ -330,15 +358,21 @@ fun MainScreen(
         modifier = Modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
-            CustomExtendedFloatingActionButton(
-                modifier = Modifier
-                    .padding(dimensionResource(id = R.dimen._5dp)),
-                text = stringResource(id = R.string.addContact),
-                icon = Icons.Default.Add,
-                onClick = addContactInfo,
-                isExpanded = isExpandedFloatingActionButtonState,
-                mutableInteractionSource = mutableInteractionSource
-            )
+            AnimatedVisibility(
+                visible = !isGeneralListScrolling && !isSelectionGeneralModeActiveState,
+                enter = slideInVertically(animationSpec = tween(durationMillis = _800), initialOffsetY = { screenHeightPixels }),
+                exit = slideOutVertically(animationSpec = tween(durationMillis = _800), targetOffsetY = { screenHeightPixels })
+            ) {
+                CustomExtendedFloatingActionButton(
+                    modifier = Modifier
+                        .padding(dimensionResource(id = R.dimen._5dp)),
+                    text = stringResource(id = R.string.addContact),
+                    icon = Icons.Default.Add,
+                    onClick = addContactInfo,
+                    isExpanded = isExpandedFloatingActionButtonState,
+                    mutableInteractionSource = mutableInteractionSource
+                )
+            }
         }
     ) { paddingValues ->
         Column(

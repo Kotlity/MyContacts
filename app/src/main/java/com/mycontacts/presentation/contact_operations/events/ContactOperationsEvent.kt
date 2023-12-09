@@ -1,6 +1,7 @@
 package com.mycontacts.presentation.contact_operations.events
 
 import android.graphics.Bitmap
+import android.net.Uri
 import com.mycontacts.data.contacts.ContactInfo
 
 sealed class ContactOperationsEvent {
@@ -10,7 +11,6 @@ sealed class ContactOperationsEvent {
     data class UpdateLastNameTextField(val lastName: String): ContactOperationsEvent()
     data class UpdatePhoneNumberTextField(val phoneNumber: String): ContactOperationsEvent()
     data class UpdatePhoto(val bitmap: Bitmap): ContactOperationsEvent()
-    object UpdateFilePhotoPath: ContactOperationsEvent()
     object UpdateModalBottomSheetActiveState: ContactOperationsEvent()
     object UpdateCameraPermissionRationaleAlertDialogState: ContactOperationsEvent()
     object ClearFirstNameTextField: ContactOperationsEvent()

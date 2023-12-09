@@ -31,7 +31,7 @@
         </activity>
         
         <provider
-            android:authorities="com.mycontacts.FileProvider"
+            android:authorities="com.mycontacts.provider"
             android:name="androidx.core.content.FileProvider"
             android:exported="false"
             android:grantUriPermissions="true">
