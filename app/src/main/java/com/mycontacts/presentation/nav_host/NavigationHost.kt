@@ -24,6 +24,7 @@ import com.mycontacts.utils.Constants.contactInfoKey
 import com.mycontacts.utils.ScreenRoutes
 import com.mycontacts.utils.contactOperationsViewModelCreator
 import com.mycontacts.utils.navigateWithArgument
+import com.mycontacts.utils.removeArgument
 import com.mycontacts.utils.retrieveArgument
 
 @Composable
@@ -67,6 +68,7 @@ fun NavigationHost(
                         navHostController.navigateWithArgument(contactInfoKey, contactInfo, ScreenRoutes.ContactOperations)
                     },
                     addContactInfo = {
+                        navHostController.removeArgument<ContactInfo>(contactInfoKey)
                         navHostController.navigate(ScreenRoutes.ContactOperations.route)
                     }
                 )

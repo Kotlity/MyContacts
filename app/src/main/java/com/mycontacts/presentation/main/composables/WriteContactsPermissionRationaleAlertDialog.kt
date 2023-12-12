@@ -2,6 +2,7 @@ package com.mycontacts.presentation.main.composables
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
@@ -50,6 +51,7 @@ fun WriteContactsPermissionRationaleAlertDialog(
                     ContactAction.EDIT -> Icons.Default.Edit
                     ContactAction.DELETE -> Icons.Default.Delete
                     ContactAction.DELETE_MULTIPLE -> Icons.Default.DeleteForever
+                    ContactAction.ADD -> Icons.Default.Add
                 },
                 contentDescription = null
             )
@@ -61,6 +63,7 @@ fun WriteContactsPermissionRationaleAlertDialog(
                     ContactAction.EDIT -> stringResource(id = R.string.writeContactsPermissionRationaleAlertDialogEdit)
                     ContactAction.DELETE -> stringResource(id = R.string.writeContactsPermissionRationaleAlertDialogDelete)
                     ContactAction.DELETE_MULTIPLE -> stringResource(id = R.string.writeContactsPermissionRationaleAlertDialogDeleteMultiple)
+                    ContactAction.ADD -> stringResource(id = R.string.writeContactsPermissionRationaleAlertDialogAdd)
                 },
                 style = MaterialTheme.typography.titleSmall.copy(
                     fontSize = _16sp,

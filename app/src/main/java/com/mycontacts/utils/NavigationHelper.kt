@@ -11,3 +11,7 @@ fun <T: Parcelable> NavController.navigateWithArgument(key: String, argument: T,
 fun <T: Parcelable?> NavController.retrieveArgument(key: String): T? {
     return previousBackStackEntry?.savedStateHandle?.get(key)
 }
+
+fun <T: Parcelable?> NavController.removeArgument(key: String) {
+    currentBackStackEntry?.savedStateHandle?.remove<T>(key)
+}

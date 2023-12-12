@@ -5,7 +5,7 @@ import android.net.Uri
 import com.mycontacts.data.contacts.ContactInfo
 
 sealed class ContactOperationsEvent {
-    data class InitialUpdate(val contactInfo: ContactInfo): ContactOperationsEvent()
+    object InitialUpdate: ContactOperationsEvent()
     data class UpdateCameraPermissionResult(val permissionResult: String): ContactOperationsEvent()
     data class UpdateFirstNameTextField(val firstName: String): ContactOperationsEvent()
     data class UpdateLastNameTextField(val lastName: String): ContactOperationsEvent()

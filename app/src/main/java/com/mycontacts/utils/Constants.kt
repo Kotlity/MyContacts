@@ -21,7 +21,6 @@ object Constants {
     const val _04Float = 0.4f
     const val _05Float = 0.5f
     const val _075Float = 0.75f
-    const val _085Float = 0.85f
     const val _1Float = 1f
 
     const val _180f = 180f
@@ -41,7 +40,7 @@ object Constants {
     const val dismissSnackbarActionLabel = "Understood..."
     const val emptyContactsErrorMessage = "Nothing to show..."
     const val contactsNotFound = "Sorry, but there are no such contacts"
-    const val writeContactsPermissionGranted = "Permission granted, you can now edit/delete contacts"
+    const val writeContactsPermissionGranted = "Permission granted, you can now add/edit/delete contacts"
     const val writeContactsPermissionNotGranted = "Permission not granted, repeat the action again"
     const val deleteContactSuccessful = "The contact was successfully deleted"
     const val deleteContactNotSuccessful = "Sorry, an unknown error occurred"
@@ -61,7 +60,6 @@ object Constants {
     const val firstNameContainsSymbols = "Firstname cannot contains symbols"
     const val firstNameContainsMoreThanOneCapitalLetter = "Firstname cannot contains more than one capital letter"
 
-    const val lastNameIsEmpty = "Lastname cannot be empty"
     const val lastNameLessThanMinLength = "Lastname cannot contains less than 2 letters"
     const val lastNameContainsSpaces = "Lastname cannot contains spaces"
     const val lastNameStartsWithALowerCaseLetter = "Lastname cannot starts with a lowercase letter"
@@ -70,6 +68,7 @@ object Constants {
     const val lastNameContainsMoreThanOneCapitalLetter = "Lastname cannot contains more than one capital letter"
 
     const val phoneNumberIsEmpty = "Phone number cannot be empty"
+    const val phoneNumberIsWrongLength = "Phone number should contains 12 digits"
     const val phoneNumberIsWrongFormat = "Phone number must comply with the international format"
 
     const val wrongInput = "Please fill in the fields with correct input"

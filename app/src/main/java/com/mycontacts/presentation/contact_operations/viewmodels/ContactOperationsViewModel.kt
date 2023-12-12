@@ -13,7 +13,6 @@ import com.mycontacts.domain.contactOperations.ContactOperationsInterface
 import com.mycontacts.presentation.contact_operations.events.ContactOperationsEvent
 import com.mycontacts.presentation.contact_operations.events.ContactOperationsResultEvent
 import com.mycontacts.presentation.contact_operations.states.ContactOperationsButtonState
-import com.mycontacts.presentation.contact_operations.states.ContactTextFieldsState
 import com.mycontacts.presentation.contact_operations.states.DeleteIconsVisibilityState
 import com.mycontacts.presentation.contact_operations.viewmodels.factory.ContactOperationsViewModelFactory
 import com.mycontacts.utils.Constants.unsuccessfulAddingContactMessage
@@ -50,9 +49,6 @@ class ContactOperationsViewModel @AssistedInject constructor(
     var isModalBottomSheetActive by mutableStateOf(false)
         private set
 
-    var contactTextFields by mutableStateOf(ContactTextFieldsState())
-        private set
-
     var firstNameValidationStatus by derivedStateOf {
         mutableStateOf<ValidationStatus>(ValidationStatus.Unspecified)
     }.value
@@ -87,15 +83,13 @@ class ContactOperationsViewModel @AssistedInject constructor(
     val contactOperationsResultFlow = contactOperationsResultChannel.receiveAsFlow()
 
     init {
-        contactInfo?.let {
-            onEvent(ContactOperationsEvent.InitialUpdate(it))
-        }
+        onEvent(ContactOperationsEvent.InitialUpdate)
     }
 
     fun onEvent(contactOperationsEvent: ContactOperationsEvent) {
         when(contactOperationsEvent) {
-            is ContactOperationsEvent.InitialUpdate -> {
-                initialUpdate(contactOperationsEvent.contactInfo)
+            ContactOperationsEvent.InitialUpdate -> {
+                initialUpdate()
             }
             is ContactOperationsEvent.UpdateCameraPermissionResult -> {
                 updateCameraPermissionResult(contactOperationsEvent.permissionResult)
@@ -142,16 +136,28 @@ class ContactOperationsViewModel @AssistedInject constructor(
         }
     }
 
-    private fun initialUpdate(contactInfo: ContactInfo) {
-        editableContactInfo = editableContactInfo.copy(
-            id = contactInfo.id,
-            photo = contactInfo.photo,
-            firstName = contactInfo.firstName,
-            lastName = contactInfo.lastName,
-            phoneNumber = contactInfo.phoneNumber,
-            timeStamp = contactInfo.timeStamp
-        )
-        contactOperationsButton = contactOperationsButton.copy(buttonText = updateContactButtonText)
+    private fun initialUpdate() {
+        if (contactInfo != null) {
+            editableContactInfo = editableContactInfo.copy(
+                id = contactInfo.id,
+                photo = contactInfo.photo,
+                firstName = contactInfo.firstName,
+                lastName = contactInfo.lastName,
+                phoneNumber = contactInfo.phoneNumber,
+                timeStamp = contactInfo.timeStamp
+            )
+            editableContactInfo.apply {
+                firstNameValidationStatus = firstName.firstNameValidation()
+                phoneNumberValidationStatus = phoneNumber.phoneNumberValidation()
+                if (lastName != null) lastNameValidationStatus = lastName.lastNameValidation()
+            }
+            contactOperationsButton = contactOperationsButton.copy(buttonText = updateContactButtonText)
+        } else {
+            editableContactInfo.apply {
+                firstNameValidationStatus = firstName.firstNameValidation()
+                phoneNumberValidationStatus = phoneNumber.phoneNumberValidation()
+            }
+        }
     }
 
     private fun updateModalBottomSheetActiveState() {
@@ -172,33 +178,37 @@ class ContactOperationsViewModel @AssistedInject constructor(
         val firstNameValidation = firstName.firstNameValidation()
         editableContactInfo = editableContactInfo.copy(firstName = firstName)
         firstNameValidationStatus = firstNameValidation
-//        contactTextFields = contactTextFields.copy(firstNameStatus = firstNameValidationStatus)
     }
 
     private fun clearFirstNameTextField() {
         editableContactInfo = editableContactInfo.copy(firstName = "")
+        val firstNameValidation = editableContactInfo.firstName.firstNameValidation()
+        firstNameValidationStatus = firstNameValidation
     }
 
     private fun updateLastNameTextField(lastName: String) {
-        val lastNameValidation = lastName.lastNameValidation()
-        editableContactInfo = editableContactInfo.copy(lastName = lastName)
-        lastNameValidationStatus = lastNameValidation
-//        contactTextFields = contactTextFields.copy(lastNameStatus = lastNameValidationStatus)
+        if (lastName.isNotEmpty()) {
+            val lastNameValidation = lastName.lastNameValidation()
+            editableContactInfo = editableContactInfo.copy(lastName = lastName)
+            lastNameValidationStatus = lastNameValidation
+        } else clearLastNameTextField()
     }
 
     private fun clearLastNameTextField() {
         editableContactInfo = editableContactInfo.copy(lastName = "")
+        lastNameValidationStatus = ValidationStatus.Success
     }
 
     private fun updatePhoneNumberTextField(phoneNumber: String) {
         val phoneNumberValidation = phoneNumber.phoneNumberValidation()
         editableContactInfo = editableContactInfo.copy(phoneNumber = phoneNumber)
         phoneNumberValidationStatus = phoneNumberValidation
-//        contactTextFields = contactTextFields.copy(phoneNumberStatus = phoneNumberValidationStatus)
     }
 
     private fun clearPhoneNumberTextField() {
         editableContactInfo = editableContactInfo.copy(phoneNumber = "")
+        val phoneNumberValidation = editableContactInfo.phoneNumber.phoneNumberValidation()
+        phoneNumberValidationStatus = phoneNumberValidation
     }
 
     private fun updatePhoto(photoBitmap: Bitmap) {
@@ -209,14 +219,9 @@ class ContactOperationsViewModel @AssistedInject constructor(
         firstNameValidationStatus is ValidationStatus.Success &&
         lastNameValidationStatus is ValidationStatus.Success &&
         phoneNumberValidationStatus is ValidationStatus.Success
-//        contactTextFields.firstNameStatus is ValidationStatus.Success &&
-//        contactTextFields.lastNameStatus is ValidationStatus.Success &&
-//        contactTextFields.phoneNumberStatus is ValidationStatus.Success
     } else {
         firstNameValidationStatus is ValidationStatus.Success &&
         phoneNumberValidationStatus is ValidationStatus.Success
-//        contactTextFields.firstNameStatus is ValidationStatus.Success &&
-//        contactTextFields.phoneNumberStatus is ValidationStatus.Success
     }
 
     private fun isTheSameInput() = if (contactInfo == null) false
@@ -250,8 +255,7 @@ class ContactOperationsViewModel @AssistedInject constructor(
                             else true
                         val updatingFirstNameResult = contactFirstNameOperations(editableContactInfo.firstName, id, ContactOperations.EDIT)
                         val lastNameOperationResult = if (contactInfo.lastName != null && lastName != null) contactLastNameOperations(lastName, id, ContactOperations.EDIT)
-                        else if (contactInfo.lastName == null && lastName != null) contactLastNameOperations(lastName, id, ContactOperations.ADD)
-                        else true
+                        else if (contactInfo.lastName == null && lastName != null) contactLastNameOperations(lastName, id, ContactOperations.ADD) else true
                         val updatingPhoneNumberResult = contactPhoneNumberOperations(editableContactInfo.phoneNumber, id, ContactOperations.EDIT)
                         val updatingTimeStampResult = contactTimeStampOperations(timeStamp, id, ContactOperations.EDIT)
 

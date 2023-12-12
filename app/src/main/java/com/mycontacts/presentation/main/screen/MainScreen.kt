@@ -368,7 +368,10 @@ fun MainScreen(
                         .padding(dimensionResource(id = R.dimen._5dp)),
                     text = stringResource(id = R.string.addContact),
                     icon = Icons.Default.Add,
-                    onClick = addContactInfo,
+                    onClick = {
+                        if (isAppHasPermission(context, Manifest.permission.WRITE_CONTACTS)) addContactInfo()
+                        else event(MainEvent.Permissions.UpdateWriteContactsPermissionRationaleAlertDialog(ContactAction.ADD))
+                    },
                     isExpanded = isExpandedFloatingActionButtonState,
                     mutableInteractionSource = mutableInteractionSource
                 )
