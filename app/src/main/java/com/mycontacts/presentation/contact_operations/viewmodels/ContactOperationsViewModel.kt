@@ -67,7 +67,7 @@ class ContactOperationsViewModel @AssistedInject constructor(
     var contactOperationsButton by mutableStateOf(ContactOperationsButtonState())
         private set
 
-    var deleteIconsVisibility by mutableStateOf(DeleteIconsVisibilityState(isDeleteContactInfoPhotoIconVisible = contactInfo != null, isDeleteContactInfoLastNameIconVisible = contactInfo != null))
+    var deleteIconsVisibility by mutableStateOf(DeleteIconsVisibilityState(isDeleteContactInfoPhotoIconVisible = contactInfo?.photo != null, isDeleteContactInfoLastNameIconVisible = contactInfo?.lastName != null))
         private set
 
     var cameraPermissionRationaleAlertDialog by mutableStateOf(false)

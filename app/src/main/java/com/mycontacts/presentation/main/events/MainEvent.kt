@@ -37,4 +37,5 @@ sealed class MainEvent {
     data class ChangeIsExpandedFloatingActionButtonState(val isExpanded: Boolean): MainEvent()
     object ClearSearchQuery: MainEvent()
     object UpdateModalBottomSheetVisibility: MainEvent()
+    object OnSwipe: MainEvent()
 }

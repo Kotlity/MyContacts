@@ -58,7 +58,6 @@ fun NavigationHost(
                         ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CONTACTS) == PackageManager.PERMISSION_GRANTED)
                     )
                 }
-
                 MainScreen(
                     mainViewModel,
                     event = { mainEvent ->

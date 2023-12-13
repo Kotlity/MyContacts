@@ -65,13 +65,6 @@ class ContactOperationsImplementation @Inject constructor(private val contentRes
                             ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE,
                             contactId
                         )
-//                        val selection = "${ContactsContract.Data.CONTACT_ID} = ? AND ${ContactsContract.Data.MIMETYPE} = ?"
-//                        val selectionArgs = arrayOf(contactId.toString(), ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE)
-//                        contentResolver.delete(
-//                            ContactsContract.Data.CONTENT_URI,
-//                            selection,
-//                            selectionArgs
-//                        )
                     }
                 }
                 true

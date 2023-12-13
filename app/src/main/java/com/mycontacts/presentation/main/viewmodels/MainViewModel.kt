@@ -18,6 +18,7 @@ import com.mycontacts.presentation.main.states.DialAlertDialogState
 import com.mycontacts.presentation.main.states.ModalBottomSheetState
 import com.mycontacts.presentation.main.states.PermissionsForMainScreenState
 import com.mycontacts.presentation.main.states.WriteContactsAlertDialogState
+import com.mycontacts.utils.Constants._1000
 import com.mycontacts.utils.Constants.contactsNotFound
 import com.mycontacts.utils.Constants.deleteContactNotSuccessful
 import com.mycontacts.utils.Constants.deleteContactSuccessful
@@ -28,9 +29,9 @@ import com.mycontacts.utils.order.ContactOrder
 import com.mycontacts.utils.Resources
 import com.mycontacts.utils.StickyHeaderAction
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -75,6 +76,9 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
     var isSelectionSearchModeActive by derivedStateOf { mutableStateOf(false) }.value
 
     var isExpandedFloatingActionButtonState by derivedStateOf { mutableStateOf(false) }.value
+
+    var refreshingState by mutableStateOf(false)
+        private set
 
     private var contactsJob: Job? = null
 
@@ -165,6 +169,9 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
             MainEvent.UpdateModalBottomSheetVisibility -> {
                 updateModalBottomSheetVisibility()
             }
+            MainEvent.OnSwipe -> {
+                onSwipe(contentResolver)
+            }
         }
     }
 
@@ -176,44 +183,61 @@ class MainViewModel @Inject constructor(private val main: Main): ViewModel() {
         )
     }
 
+    private fun getAllContactsResultHandler(result: Resources<List<ContactInfo>>, contactOrder: ContactOrder) {
+        contactsState = when (result) {
+            is Resources.Success -> {
+                contactsState.copy(isLoading = false, errorMessage = "", contacts = result.data?.groupBy { contactInfo -> contactInfo.firstName.first() } ?: emptyMap(), contactOrder = contactOrder)
+            }
+
+            is Resources.Error -> {
+                contactsState.copy(isLoading = false, errorMessage = result.errorMessage ?: "", contacts = emptyMap(), contactOrder = contactOrder)
+            }
+
+            is Resources.Loading -> {
+                contactsState.copy(isLoading = true, errorMessage = "", contacts = emptyMap(), contactOrder = contactOrder)
+            }
+        }
+    }
+
     private fun getAllContacts(contentResolver: ContentResolver, contactOrder: ContactOrder) {
         contactsJob?.cancel()
         contactsJob = main.getAllContacts(contentResolver, contactOrder).onEach { result ->
-            contactsState = when (result) {
-                is Resources.Success -> {
-                    contactsState.copy(isLoading = false, errorMessage = "", contacts = result.data?.groupBy { contactInfo -> contactInfo.firstName.first() } ?: emptyMap(), contactOrder = contactOrder)
-                }
-
-                is Resources.Error -> {
-                    contactsState.copy(isLoading = false, errorMessage = result.errorMessage ?: "", contacts = emptyMap(), contactOrder = contactOrder)
-                }
-
-                is Resources.Loading -> {
-                    contactsState.copy(isLoading = true, errorMessage = "", contacts = emptyMap(), contactOrder = contactOrder)
-                }
-            }
+            getAllContactsResultHandler(result, contactOrder)
         }.launchIn(viewModelScope)
+    }
+
+    private fun onSwipe(contentResolver: ContentResolver) {
+        viewModelScope.launch {
+            refreshingState = true
+            delay(_1000.toLong())
+            main.getAllContacts(contentResolver, contactsState.contactOrder).collect { result ->
+                getAllContactsResultHandler(result, contactsState.contactOrder)
+            }
+            refreshingState = false
+        }
     }
 
     private fun searchContact(contentResolver: ContentResolver, searchQuery: String, searchContactOrder: ContactOrder) {
         contactsSearchState = contactsSearchState.copy(searchQuery = searchQuery)
         searchJob?.cancel()
-        searchJob = viewModelScope.launch(Dispatchers.IO) {
-            main.searchContacts(contentResolver, searchQuery, searchContactOrder).collect { searchResult ->
-                contactsSearchState = when (searchResult) {
-                    is Resources.Success -> {
-                        contactsSearchState.copy(isLoading = false, errorMessage = "", contacts = searchResult.data ?: emptyList())
-                    }
+        searchJob = viewModelScope.launch {
+            if (searchQuery.isNotEmpty()) {
+                main.searchContacts(contentResolver, searchQuery, searchContactOrder).collect { searchResult ->
+                    contactsSearchState = when (searchResult) {
+                        is Resources.Success -> {
+                            contactsSearchState.copy(isLoading = false, errorMessage = "", contacts = searchResult.data ?: emptyList())
+                        }
 
-                    is Resources.Error -> {
-                        contactsSearchState.copy(isLoading = false, errorMessage = searchResult.errorMessage ?: "", contacts = emptyList())
-                    }
+                        is Resources.Error -> {
+                            contactsSearchState.copy(isLoading = false, errorMessage = searchResult.errorMessage ?: "", contacts = emptyList())
+                        }
 
-                    is Resources.Loading -> {
-                        contactsSearchState.copy(isLoading = true, errorMessage = "", contacts = emptyList())
+                        is Resources.Loading -> {
+                            contactsSearchState.copy(isLoading = true, errorMessage = "", contacts = emptyList())
+                        }
                     }
                 }
-            }
+            } else contactsSearchState = contactsSearchState.copy(isLoading = false, errorMessage = contactsNotFound, contacts = emptyList())
         }
     }
 

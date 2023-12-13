@@ -46,6 +46,8 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.mycontacts.R
 import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.presentation.main.composables.ContactActionsModalBottomSheet
@@ -113,6 +115,8 @@ fun MainScreen(
     val deleteSelectedContactsResult = mainViewModel.deleteSelectedContactsResult.receiveAsFlow()
 
     val isExpandedFloatingActionButtonState = mainViewModel.isExpandedFloatingActionButtonState
+
+    val isRefreshingState = mainViewModel.refreshingState
     
     val mutableInteractionSource = remember {
         MutableInteractionSource()
@@ -139,6 +143,8 @@ fun MainScreen(
     var isGeneralListScrolling by remember {
         mutableStateOf(lazyListState.isScrollInProgress)
     }
+
+    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = isRefreshingState)
 
     val permissionToAccessAllFilesLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -359,7 +365,7 @@ fun MainScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             AnimatedVisibility(
-                visible = !isGeneralListScrolling && !isSelectionGeneralModeActiveState,
+                visible = !isGeneralListScrolling && !isSelectionGeneralModeActiveState && !contactsSearchState.isSearchBarActive,
                 enter = slideInVertically(animationSpec = tween(durationMillis = _800), initialOffsetY = { screenHeightPixels }),
                 exit = slideOutVertically(animationSpec = tween(durationMillis = _800), targetOffsetY = { screenHeightPixels })
             ) {
@@ -503,32 +509,40 @@ fun MainScreen(
                 )
             }
             if (contactsState.contacts.isNotEmpty()) {
-                ContactGeneralList(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    lazyListState = lazyListState,
-                    isAtLeastOneContactInfoSelected = { header ->
-                        selectedGeneralContacts.any { selectedContactInfo -> selectedContactInfo.firstName.first() == header }
+                SwipeRefresh(
+                    state = swipeRefreshState,
+                    onRefresh = {
+                        event(MainEvent.OnSwipe)
                     },
-                    contactsMap = contactsState.contacts,
-                    onContactClick = { index, contactInfo ->
-                        if (!isSelectionGeneralModeActiveState) event(MainEvent.UpdateDialAlertDialog(contactInfo = contactInfo))
-                        else event(MainEvent.UpdateIsContactSelectedFieldByClickOnContactInfo(contactInfo.firstName.first(), index))
-                    },
-                    onLongContactClick = { index, contactInfo ->
-                        if (!isSelectionGeneralModeActiveState) {
-                            event(MainEvent.UpdateModalBottomSheetVisibility)
-                            event(MainEvent.UpdateModalBottomSheetContactInfo(ContactsMethod.GENERAL, index, contactInfo))
+                    swipeEnabled = !isSelectionGeneralModeActiveState
+                ) {
+                    ContactGeneralList(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        lazyListState = lazyListState,
+                        isAtLeastOneContactInfoSelected = { header ->
+                            selectedGeneralContacts.any { selectedContactInfo -> selectedContactInfo.firstName.first() == header }
+                        },
+                        contactsMap = contactsState.contacts,
+                        onContactClick = { index, contactInfo ->
+                            if (!isSelectionGeneralModeActiveState) event(MainEvent.UpdateDialAlertDialog(contactInfo = contactInfo))
+                            else event(MainEvent.UpdateIsContactSelectedFieldByClickOnContactInfo(contactInfo.firstName.first(), index))
+                        },
+                        onLongContactClick = { index, contactInfo ->
+                            if (!isSelectionGeneralModeActiveState) {
+                                event(MainEvent.UpdateModalBottomSheetVisibility)
+                                event(MainEvent.UpdateModalBottomSheetContactInfo(ContactsMethod.GENERAL, index, contactInfo))
+                            }
+                        },
+                        onStickyHeaderClick = { header ->
+                            if (selectedGeneralContacts.any { selectedContactInfo -> selectedContactInfo.firstName.first() == header }) {
+                                event(MainEvent.UpdateSelectedContactsByItsHeader(header, StickyHeaderAction.UNSELECT_ALL))
+                            }
+                            else event(MainEvent.UpdateSelectedContactsByItsHeader(header, StickyHeaderAction.SELECT_ALL))
                         }
-                    },
-                    onStickyHeaderClick = { header ->
-                         if (selectedGeneralContacts.any { selectedContactInfo -> selectedContactInfo.firstName.first() == header }) {
-                             event(MainEvent.UpdateSelectedContactsByItsHeader(header, StickyHeaderAction.UNSELECT_ALL))
-                         }
-                         else event(MainEvent.UpdateSelectedContactsByItsHeader(header, StickyHeaderAction.SELECT_ALL))
-                    }
-                )
+                    )
+                }
             }
             if (contactsState.contacts.isEmpty() && !contactsState.isLoading) {
                 EmptyContacts(
