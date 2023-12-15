@@ -68,7 +68,7 @@ fun SelectedContactsInfoHeader(
                     else {
                         slideInVertically { initialOffsetY -> -initialOffsetY } togetherWith slideOutVertically { targetOffsetY -> targetOffsetY }
                     }
-                }
+                }, label = ""
             ) { animatedChar ->
                 Text(
                     text = animatedChar.toString(),

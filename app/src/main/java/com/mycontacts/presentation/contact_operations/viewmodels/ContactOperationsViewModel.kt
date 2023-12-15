@@ -226,13 +226,15 @@ class ContactOperationsViewModel @AssistedInject constructor(
 
     private fun isTheSameInput() = if (contactInfo == null) false
         else {
-            if (editableContactInfo.lastName != null) {
-                editableContactInfo.firstName == contactInfo.firstName &&
-                editableContactInfo.lastName == contactInfo.lastName &&
-                editableContactInfo.phoneNumber == contactInfo.phoneNumber
-            } else {
-                editableContactInfo.firstName == contactInfo.firstName &&
-                editableContactInfo.phoneNumber == contactInfo.phoneNumber
+            with(editableContactInfo) {
+                if (lastName != null) {
+                    firstName == contactInfo.firstName &&
+                    lastName == contactInfo.lastName &&
+                    phoneNumber == contactInfo.phoneNumber
+                } else {
+                    firstName == contactInfo.firstName &&
+                    phoneNumber == contactInfo.phoneNumber
+                }
             }
         }
 
@@ -249,13 +251,13 @@ class ContactOperationsViewModel @AssistedInject constructor(
                 contactOperations.apply {
                     val timeStamp = System.currentTimeMillis()
                     if (contactInfo != null) {
-                        val id = contactInfo.id
+                        val id = contactInfo.id.toString()
                         val photoOperationResult = if (contactInfo.photo != null && photo != null) contactPhotoOperations(photo, id, ContactOperations.EDIT)
                             else if (contactInfo.photo == null && photo != null) contactPhotoOperations(photo, id, ContactOperations.ADD)
                             else true
                         val updatingFirstNameResult = contactFirstNameOperations(editableContactInfo.firstName, id, ContactOperations.EDIT)
-                        val lastNameOperationResult = if (contactInfo.lastName != null && lastName != null) contactLastNameOperations(lastName, id, ContactOperations.EDIT)
-                        else if (contactInfo.lastName == null && lastName != null) contactLastNameOperations(lastName, id, ContactOperations.ADD) else true
+                        val lastNameOperationResult = if ((contactInfo.lastName != null && lastName != null) || (contactInfo.lastName == null && lastName != null)) { contactLastNameOperations(lastName, id, ContactOperations.EDIT) }
+                        else true
                         val updatingPhoneNumberResult = contactPhoneNumberOperations(editableContactInfo.phoneNumber, id, ContactOperations.EDIT)
                         val updatingTimeStampResult = contactTimeStampOperations(timeStamp, id, ContactOperations.EDIT)
 
@@ -267,7 +269,7 @@ class ContactOperationsViewModel @AssistedInject constructor(
                         val id = contactId()
                         val addingPhotoResult = photo?.let { contactPhotoOperations(it, id, ContactOperations.ADD) } ?: true
                         val addingFirstNameResult = contactFirstNameOperations(firstName, id, ContactOperations.ADD)
-                        val addingLastNameResult = editableContactInfo.lastName?.let { lastName -> contactLastNameOperations(lastName, id, ContactOperations.ADD) } ?: true
+                        val addingLastNameResult = lastName?.let { lastName -> contactLastNameOperations(lastName, id, ContactOperations.EDIT) } ?: true
                         val addingPhoneNumberResult = contactPhoneNumberOperations(phoneNumber, id, ContactOperations.ADD)
                         val addingTimeStampResult = contactTimeStampOperations(timeStamp, id, ContactOperations.ADD)
 
@@ -284,7 +286,7 @@ class ContactOperationsViewModel @AssistedInject constructor(
     private fun deleteContactInfoPhoto() {
         viewModelScope.launch {
             editableContactInfo.photo?.let { photo ->
-                val contactPhotoDeletingResult = contactOperations.contactPhotoOperations(photo, editableContactInfo.id, ContactOperations.DELETE)
+                val contactPhotoDeletingResult = contactOperations.contactPhotoOperations(photo, editableContactInfo.id.toString(), ContactOperations.DELETE)
                 if (contactPhotoDeletingResult) {
                     editableContactInfo = editableContactInfo.copy(photo = null)
                     deleteIconsVisibility = deleteIconsVisibility.copy(isDeleteContactInfoPhotoIconVisible = false)
@@ -297,7 +299,7 @@ class ContactOperationsViewModel @AssistedInject constructor(
     private fun deleteContactInfoLastName() {
         viewModelScope.launch {
             editableContactInfo.lastName?.let { lastName ->
-                val contactLastNameDeletingResult = contactOperations.contactLastNameOperations(lastName, editableContactInfo.id, ContactOperations.DELETE)
+                val contactLastNameDeletingResult = contactOperations.contactLastNameOperations(lastName, editableContactInfo.id.toString(), ContactOperations.DELETE)
                 if (contactLastNameDeletingResult) {
                     editableContactInfo = editableContactInfo.copy(lastName = null)
                     deleteIconsVisibility = deleteIconsVisibility.copy(isDeleteContactInfoLastNameIconVisible = false)

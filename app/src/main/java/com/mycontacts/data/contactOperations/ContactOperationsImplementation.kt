@@ -19,14 +19,14 @@ import javax.inject.Inject
 
 class ContactOperationsImplementation @Inject constructor(private val contentResolver: ContentResolver): ContactOperationsInterface {
 
-    override suspend fun contactId(): Long {
+    override suspend fun contactId(): String {
         return withContext(Dispatchers.IO) {
             ensureActive()
-            contentResolver.contactId().toLong()
+            contentResolver.contactId()
         }
     }
 
-    override suspend fun contactPhotoOperations(photoBitmap: Bitmap, contactId: Long, contactOperations: ContactOperations): Boolean {
+    override suspend fun contactPhotoOperations(photoBitmap: Bitmap, contactId: String, contactOperations: ContactOperations): Boolean {
         return withContext(Dispatchers.IO) {
             try {
                 val photoContentValues = ContentValues()
@@ -36,7 +36,7 @@ class ContactOperationsImplementation @Inject constructor(private val contentRes
                     ContactOperations.EDIT -> {
                         photoContentValues.put(ContactsContract.CommonDataKinds.Photo.PHOTO, photoByteArray)
                         val selection = "${ContactsContract.Data.CONTACT_ID} = ? AND ${ContactsContract.Data.MIMETYPE} = ?"
-                        val selectionArgs = arrayOf(contactId.toString(), ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE)
+                        val selectionArgs = arrayOf(contactId, ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE)
 
                         ensureActive()
                         contentResolver.update(
@@ -75,7 +75,7 @@ class ContactOperationsImplementation @Inject constructor(private val contentRes
         }
     }
 
-    override suspend fun contactFirstNameOperations(firstName: String, contactId: Long, contactOperations: ContactOperations): Boolean {
+    override suspend fun contactFirstNameOperations(firstName: String, contactId: String, contactOperations: ContactOperations): Boolean {
         return withContext(Dispatchers.IO) {
             try {
                 when(contactOperations) {
@@ -121,7 +121,7 @@ class ContactOperationsImplementation @Inject constructor(private val contentRes
         }
     }
 
-    override suspend fun contactLastNameOperations(lastName: String, contactId: Long, contactOperations: ContactOperations): Boolean {
+    override suspend fun contactLastNameOperations(lastName: String, contactId: String, contactOperations: ContactOperations): Boolean {
         return withContext(Dispatchers.IO) {
             try {
                 when(contactOperations) {
@@ -168,7 +168,7 @@ class ContactOperationsImplementation @Inject constructor(private val contentRes
                         lastNameContentValues.putNull(ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME)
 
                         val selection = "${ContactsContract.Data.CONTACT_ID} = ? AND ${ContactsContract.Data.MIMETYPE} = ?"
-                        val selectionArgs = arrayOf(contactId.toString(), ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
+                        val selectionArgs = arrayOf(contactId, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
 
                         ensureActive()
                         contentResolver.update(
@@ -188,7 +188,7 @@ class ContactOperationsImplementation @Inject constructor(private val contentRes
         }
     }
 
-    override suspend fun contactPhoneNumberOperations(phoneNumber: String, contactId: Long, contactOperations: ContactOperations): Boolean {
+    override suspend fun contactPhoneNumberOperations(phoneNumber: String, contactId: String, contactOperations: ContactOperations): Boolean {
         return withContext(Dispatchers.IO) {
             try {
 
@@ -235,7 +235,7 @@ class ContactOperationsImplementation @Inject constructor(private val contentRes
         }
     }
 
-    override suspend fun contactTimeStampOperations(timeStamp: Long, contactId: Long, contactOperations: ContactOperations): Boolean {
+    override suspend fun contactTimeStampOperations(timeStamp: Long, contactId: String, contactOperations: ContactOperations): Boolean {
         return withContext(Dispatchers.IO) {
             try {
 
@@ -245,7 +245,7 @@ class ContactOperationsImplementation @Inject constructor(private val contentRes
                             put(ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP, timeStamp)
                         }
                         val selection = "${ContactsContract.Data.CONTACT_ID} = ? AND ${ContactsContract.Data.MIMETYPE} = ?"
-                        val selectionArgs = arrayOf(contactId.toString(), ContactsContract.Contacts.CONTENT_ITEM_TYPE)
+                        val selectionArgs = arrayOf(contactId, ContactsContract.Contacts.CONTENT_ITEM_TYPE)
 
                         ensureActive()
                         contentResolver.update(

@@ -247,7 +247,8 @@ fun ContactOperationsScreen(
             ) {
                 AnimatedContent(
                     targetState = photoBitmap,
-                    transitionSpec = { fadeIn(animationSpec = tween(durationMillis = _1000)) togetherWith fadeOut(animationSpec = tween(durationMillis = _1000)) }
+                    transitionSpec = { fadeIn(animationSpec = tween(durationMillis = _1000)) togetherWith fadeOut(animationSpec = tween(durationMillis = _1000)) },
+                    label = ""
                 ) { bitmap ->
                     ContactInfoPhoto(
                         photoBitmap = bitmap,

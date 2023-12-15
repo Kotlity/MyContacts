@@ -88,7 +88,7 @@ private fun UpdateTrailingIcon(
     icon: ImageVector,
     onTrailingIconClick: () -> Unit
 ) {
-    AnimatedContent(targetState = isInputTextEmpty) { isEmpty ->
+    AnimatedContent(targetState = isInputTextEmpty, label = "") { isEmpty ->
         if (isEmpty) {
             Icon(
                 imageVector = icon,

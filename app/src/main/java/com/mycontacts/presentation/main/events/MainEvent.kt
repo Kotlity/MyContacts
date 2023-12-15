@@ -13,7 +13,7 @@ sealed class MainEvent {
         data class UpdateIsUserHasPermissionToReadContacts(val isUserHasPermissionToReadContacts: Boolean): Permissions()
         data class UpdateIsUserHasPermissionToWriteContacts(val isUserHasPermissionToWriteContacts: Boolean): Permissions()
         data class UpdateWriteContactsPermissionRationaleAlertDialog(val contactAction: ContactAction): Permissions()
-        object ClearWriteContactsPermissionRationaleAlertDialog: Permissions()
+        data object ClearWriteContactsPermissionRationaleAlertDialog: Permissions()
     }
     data class OnMainViewModelInitializing(val permissionToAccessAllFiles: Boolean, val permissionToReadContacts: Boolean, val permissionToWriteContacts: Boolean): MainEvent()
     data class GetAllContacts(val contactOrder: ContactOrder): MainEvent()

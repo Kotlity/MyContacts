@@ -8,7 +8,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.ContactsContract
-import android.util.Log
 import androidx.core.content.FileProvider
 import com.mycontacts.utils.Constants.datePattern
 import java.io.ByteArrayOutputStream
@@ -55,10 +54,9 @@ fun createTempFilePhotoPath(context: Context): Uri {
     val photoName = "picture_$currentTime"
     val photoFormat = ".png"
     val authority = "com.mycontacts.provider"
-    val tempFile = File.createTempFile(photoName, photoFormat, context.cacheDir).apply { createNewFile() }
-    val photoFileUri = FileProvider.getUriForFile(context.applicationContext, authority, tempFile)
-    Log.e("MyTag", "photo file uri: $photoFileUri")
-    return photoFileUri
+    val tempFile =
+        File.createTempFile(photoName, photoFormat, context.cacheDir).apply { createNewFile() }
+    return FileProvider.getUriForFile(context.applicationContext, authority, tempFile)
 }
 
 fun Uri.uriToBitmap(contentResolver: ContentResolver): Bitmap? {
@@ -77,12 +75,12 @@ fun Uri.uriToBitmap(contentResolver: ContentResolver): Bitmap? {
 
 fun convertTimestamp(timeStamp: Long): String = SimpleDateFormat(datePattern, Locale.ROOT).format(Date(timeStamp))
 
-fun ContentResolver.editContactField(rawToEdit: String, contentType: String, contactField: String, contactId: Long) {
+fun ContentResolver.editContactField(rawToEdit: String, contentType: String, contactField: String, contactId: String) {
     val fieldContentValues = ContentValues().apply {
         put(rawToEdit, contactField)
     }
     val selection = "${ContactsContract.Data.CONTACT_ID} = ? AND ${ContactsContract.Data.MIMETYPE} = ?"
-    val selectionArgs = arrayOf(contactId.toString(), contentType)
+    val selectionArgs = arrayOf(contactId, contentType)
 
     update(
         ContactsContract.Data.CONTENT_URI,
@@ -92,7 +90,7 @@ fun ContentResolver.editContactField(rawToEdit: String, contentType: String, con
     )
 }
 
-fun ContentResolver.addContactField(rawToAdd: String, contentType: String, contactField: String, contactId: Long) {
+fun ContentResolver.addContactField(rawToAdd: String, contentType: String, contactField: String, contactId: String) {
     val fieldContentValues = ContentValues().apply {
         put(ContactsContract.Data.RAW_CONTACT_ID, contactId)
         put(ContactsContract.Data.MIMETYPE, contentType)
@@ -105,9 +103,9 @@ fun ContentResolver.addContactField(rawToAdd: String, contentType: String, conta
     )
 }
 
-fun ContentResolver.deleteContactField(contentType: String, contactId: Long) {
+fun ContentResolver.deleteContactField(contentType: String, contactId: String) {
     val selection = "${ContactsContract.Data.CONTACT_ID} = ? AND ${ContactsContract.Data.MIMETYPE} = ?"
-    val selectionArgs = arrayOf(contactId.toString(), contentType)
+    val selectionArgs = arrayOf(contactId, contentType)
 
     delete(
         ContactsContract.Data.CONTENT_URI,

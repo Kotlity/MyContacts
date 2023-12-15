@@ -5,15 +5,15 @@ import com.mycontacts.utils.ContactOperations
 
 interface ContactOperationsInterface {
 
-    suspend fun contactId(): Long
+    suspend fun contactId(): String
 
-    suspend fun contactPhotoOperations(photoBitmap: Bitmap, contactId: Long, contactOperations: ContactOperations): Boolean
+    suspend fun contactPhotoOperations(photoBitmap: Bitmap, contactId: String, contactOperations: ContactOperations): Boolean
 
-    suspend fun contactFirstNameOperations(firstName: String, contactId: Long, contactOperations: ContactOperations): Boolean
+    suspend fun contactFirstNameOperations(firstName: String, contactId: String, contactOperations: ContactOperations): Boolean
 
-    suspend fun contactLastNameOperations(lastName: String, contactId: Long, contactOperations: ContactOperations): Boolean
+    suspend fun contactLastNameOperations(lastName: String, contactId: String, contactOperations: ContactOperations): Boolean
 
-    suspend fun contactPhoneNumberOperations(phoneNumber: String, contactId: Long, contactOperations: ContactOperations): Boolean
+    suspend fun contactPhoneNumberOperations(phoneNumber: String, contactId: String, contactOperations: ContactOperations): Boolean
 
-    suspend fun contactTimeStampOperations(timeStamp: Long, contactId: Long, contactOperations: ContactOperations): Boolean
+    suspend fun contactTimeStampOperations(timeStamp: Long, contactId: String, contactOperations: ContactOperations): Boolean
 }
