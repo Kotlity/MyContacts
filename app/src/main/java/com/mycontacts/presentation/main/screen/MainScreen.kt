@@ -1,13 +1,16 @@
 package com.mycontacts.presentation.main.screen
 
 import android.Manifest
+import android.app.LocaleManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.os.LocaleList
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
@@ -46,6 +49,8 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.getSystemService
+import androidx.core.os.LocaleListCompat
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.mycontacts.R
@@ -89,6 +94,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -375,8 +381,18 @@ fun MainScreen(
                     text = stringResource(id = R.string.addContact),
                     icon = Icons.Default.Add,
                     onClick = {
-                        if (isAppHasPermission(context, Manifest.permission.WRITE_CONTACTS)) addContactInfo()
-                        else event(MainEvent.Permissions.UpdateWriteContactsPermissionRationaleAlertDialog(ContactAction.ADD))
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            val localeManager = context.getSystemService(LocaleManager::class.java)
+                            val locale = Locale.forLanguageTag("uk")
+                            val localeList = LocaleList(locale)
+                            localeManager.applicationLocales = localeList
+
+                        } else {
+                            val localeListCompat = LocaleListCompat.forLanguageTags("uk")
+                            AppCompatDelegate.setApplicationLocales(localeListCompat)
+                        }
+//                        if (isAppHasPermission(context, Manifest.permission.WRITE_CONTACTS)) addContactInfo()
+//                        else event(MainEvent.Permissions.UpdateWriteContactsPermissionRationaleAlertDialog(ContactAction.ADD))
                     },
                     isExpanded = isExpandedFloatingActionButtonState,
                     mutableInteractionSource = mutableInteractionSource

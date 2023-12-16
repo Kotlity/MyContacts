@@ -4,7 +4,6 @@ import android.content.ContentResolver
 import android.content.ContentValues
 import android.graphics.Bitmap
 import android.provider.ContactsContract
-import android.util.Log
 import com.mycontacts.domain.contactOperations.ContactOperationsInterface
 import com.mycontacts.utils.ContactOperations
 import com.mycontacts.utils.addContactField
@@ -69,7 +68,6 @@ class ContactOperationsImplementation @Inject constructor(private val contentRes
                 }
                 true
             } catch (e: Exception) {
-                Log.e("MyTag", "contact photo operations error: ${e.message.toString()}")
                 false
             }
         }
@@ -100,22 +98,8 @@ class ContactOperationsImplementation @Inject constructor(private val contentRes
                     else -> Unit
                 }
 
-//                val firstNameContentValues = ContentValues().apply {
-//                    put(ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME, firstName)
-//                }
-//                val selection = "${ContactsContract.Data.CONTACT_ID} = ? AND ${ContactsContract.Data.MIMETYPE} = ?"
-//                val selectionArgs = arrayOf(contactId.toString(), ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
-//
-//                contentResolver.update(
-//                    ContactsContract.Data.CONTENT_URI,
-//                    firstNameContentValues,
-//                    selection,
-//                    selectionArgs
-//                )
-
                 true
             } catch (e: Exception) {
-                Log.e("MyTag", "edit contact first name error: ${e.message.toString()}")
                 false
             }
         }
@@ -133,16 +117,6 @@ class ContactOperationsImplementation @Inject constructor(private val contentRes
                             lastName,
                             contactId
                         )
-//                        lastNameContentValues.put(ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME, lastName)
-//                        val selection = "${ContactsContract.Data.CONTACT_ID} = ? AND ${ContactsContract.Data.MIMETYPE} = ?"
-//                        val selectionArgs = arrayOf(contactId.toString(), ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
-//
-//                        contentResolver.update(
-//                            ContactsContract.Data.CONTENT_URI,
-//                            lastNameContentValues,
-//                            selection,
-//                            selectionArgs
-//                        )
                     }
                     ContactOperations.ADD -> {
                         ensureActive()
@@ -152,16 +126,6 @@ class ContactOperationsImplementation @Inject constructor(private val contentRes
                             lastName,
                             contactId
                         )
-//                        lastNameContentValues.apply {
-//                            put(ContactsContract.Data.RAW_CONTACT_ID, contactId)
-//                            put(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
-//                            put(ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME, lastName)
-//                        }
-//
-//                        contentResolver.insert(
-//                            ContactsContract.Data.CONTENT_URI,
-//                            lastNameContentValues
-//                        )
                     }
                     ContactOperations.DELETE -> {
                         val lastNameContentValues = ContentValues()
@@ -182,7 +146,6 @@ class ContactOperationsImplementation @Inject constructor(private val contentRes
 
                 true
             } catch (e: Exception) {
-                Log.e("MyTag", "contact last name operations error: ${e.message.toString()}")
                 false
             }
         }
@@ -213,23 +176,8 @@ class ContactOperationsImplementation @Inject constructor(private val contentRes
                     }
                     else -> Unit
                 }
-
-//                val phoneNumberContentValues = ContentValues().apply {
-//                    put(ContactsContract.CommonDataKinds.Phone.NUMBER, phoneNumber)
-//                }
-//                val selection = "${ContactsContract.Data.CONTACT_ID} = ? AND ${ContactsContract.Data.MIMETYPE} = ?"
-//                val selectionArgs = arrayOf(contactId.toString(), ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
-//
-//                contentResolver.update(
-//                    ContactsContract.Data.CONTENT_URI,
-//                    phoneNumberContentValues,
-//                    selection,
-//                    selectionArgs
-//                )
-
                 true
             } catch (e: Exception) {
-                Log.e("MyTag", "edit contact phone number error: ${e.message.toString()}")
                 false
             }
         }
@@ -273,7 +221,6 @@ class ContactOperationsImplementation @Inject constructor(private val contentRes
 
                 true
             } catch (e: Exception) {
-                Log.e("MyTag", "edit contact time stamp error: ${e.message.toString()}")
                 false
             }
         }

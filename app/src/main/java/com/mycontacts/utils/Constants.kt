@@ -36,6 +36,8 @@ object Constants {
 
     const val dataStoreName = "dataStore"
     private const val hasUserAlreadyClickedOnStartButtonName = "hasUserAlreadyClickedOnStartButton"
+    private const val isDarkUiModeKey = "isDarkUiModeKey"
+
     const val onDismissButtonClicked = "You have denied permission to access all files.\nPlease restart the application and accept this permission"
     const val dismissSnackbarActionLabel = "Understood..."
     const val emptyContactsErrorMessage = "Nothing to show..."
@@ -89,5 +91,6 @@ object Constants {
     const val updateContactButtonText = "Update contact"
     const val addContactButtonText = "Add contact"
 
-    val hasUserAlreadyClickedOnStartButton = booleanPreferencesKey(hasUserAlreadyClickedOnStartButtonName)
+    val hasUserAlreadyClickedOnStartButtonPreferences = booleanPreferencesKey(hasUserAlreadyClickedOnStartButtonName)
+    val isDarkUiModePreferences = booleanPreferencesKey(isDarkUiModeKey)
 }

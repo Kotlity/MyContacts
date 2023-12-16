@@ -9,6 +9,9 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.ContactsContract
 import androidx.core.content.FileProvider
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import com.mycontacts.utils.Constants.datePattern
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -16,6 +19,8 @@ import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(Constants.dataStoreName)
 
 fun getColumnIndex(cursor: Cursor, column: String) = cursor.getColumnIndex(column)
 
