@@ -1,4 +1,4 @@
-package com.mycontacts.presentation.settings
+package com.mycontacts.presentation.settings.screen
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext

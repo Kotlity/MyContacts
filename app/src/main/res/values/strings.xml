@@ -44,4 +44,6 @@
     <string name="cameraPermissionIsDenied">Permission for the camera has been denied. Please grant access through the application settings and try again</string>
     <string name="cameraPermissionRationaleAlertDialogTitle">Permission required</string>
     <string name="cameraPermissionRationaleAlertDialogText">To take a photo, you need to give the app access to your device\'s camera</string>
+    <string name="usaLanguageCode" translatable="false">us</string>
+    <string name="ukraineLanguageCode" translatable="false">uk</string>
 </resources>

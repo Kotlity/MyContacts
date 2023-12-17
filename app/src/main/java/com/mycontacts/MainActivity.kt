@@ -28,6 +28,7 @@ class MainActivity : AppCompatActivity() {
             initialViewModel.apply {
                 onEvent(InitialEvent.UpdateIsDarkUiModePreferences(isSystemInDarkTheme()))
                 onEvent(InitialEvent.RetrieveIsDarkUiModePreferences)
+                onEvent(InitialEvent.RetrieveCurrentLanguageCode)
             }
 
             val isDarkUiMode = initialViewModel.isDarkUiMode

@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mycontacts.domain.pager.Pager
+import com.mycontacts.domain.settings.LanguageSettings
 import com.mycontacts.domain.shared.DataStoreHelper
 import com.mycontacts.presentation.initial.events.InitialEvent
 import com.mycontacts.utils.Constants._500L
@@ -23,7 +24,8 @@ import javax.inject.Inject
 @HiltViewModel
 class InitialViewModel @Inject constructor(
     private val pager: Pager,
-    private val booleanDataStoreHelper: DataStoreHelper<Boolean>
+    private val booleanDataStoreHelper: DataStoreHelper<Boolean>,
+    private val languageSettings: LanguageSettings
 ): ViewModel() {
 
     var isShouldShowSplashScreen by mutableStateOf(true)
@@ -35,10 +37,14 @@ class InitialViewModel @Inject constructor(
     var isDarkUiMode by mutableStateOf(false)
         private set
 
+    var currentLanguageCode by mutableStateOf("")
+        private set
+
     private var updatingIsDarkUiModeJob: Job? = null
 
     init {
         onEvent(InitialEvent.UpdateStartDestination)
+        onEvent(InitialEvent.RetrieveCurrentLanguageCode)
     }
 
     fun onEvent(initialEvent: InitialEvent) {
@@ -46,11 +52,17 @@ class InitialViewModel @Inject constructor(
             InitialEvent.UpdateStartDestination -> {
                 updateStartDestination()
             }
+            InitialEvent.RetrieveIsDarkUiModePreferences -> {
+                retrieveIsDarkUiModePreferences()
+            }
             is InitialEvent.UpdateIsDarkUiModePreferences -> {
                 updateIsDarkUiModePreferences(initialEvent.isDarkUiMode)
             }
-            InitialEvent.RetrieveIsDarkUiModePreferences -> {
-                retrieveIsDarkUiModePreferences()
+            InitialEvent.RetrieveCurrentLanguageCode -> {
+                retrieveCurrentLanguageCode()
+            }
+            is InitialEvent.ChangeAppLanguage -> {
+                changeAppLanguage(initialEvent.languageCode)
             }
         }
     }
@@ -81,5 +93,13 @@ class InitialViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun retrieveCurrentLanguageCode() {
+        currentLanguageCode = languageSettings.currentLanguageCode
+    }
+
+    private fun changeAppLanguage(languageCode: String) {
+        languageSettings.changeAppLanguage(languageCode)
     }
 }

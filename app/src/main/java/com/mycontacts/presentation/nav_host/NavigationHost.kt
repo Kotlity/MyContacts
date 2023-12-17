@@ -20,7 +20,7 @@ import com.mycontacts.presentation.main.screen.MainScreen
 import com.mycontacts.presentation.main.viewmodels.MainViewModel
 import com.mycontacts.presentation.pager.screen.PagerScreen
 import com.mycontacts.presentation.pager.viewmodels.PagerViewModel
-import com.mycontacts.presentation.settings.SettingsScreen
+import com.mycontacts.presentation.settings.screen.SettingsScreen
 import com.mycontacts.utils.Constants.contactInfoKey
 import com.mycontacts.utils.ScreenRoutes
 import com.mycontacts.utils.contactOperationsViewModelCreator
