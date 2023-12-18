@@ -22,9 +22,9 @@ class BooleanDataStoreHelper(@ApplicationContext private val context: Context): 
         }
     }
 
-    override fun retrieveValue(key: Preferences.Key<Boolean>): Flow<Boolean> {
+    override fun retrieveValue(key: Preferences.Key<Boolean>, initialValue: Boolean): Flow<Boolean> {
         return context.dataStore.data.map { preferences ->
-            preferences[key] ?: false
+            preferences[key] ?: initialValue
         }.flowOn(Dispatchers.IO)
     }
 }

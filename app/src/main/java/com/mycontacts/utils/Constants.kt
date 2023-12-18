@@ -17,9 +17,10 @@ object Constants {
     const val _300L = 300L
     const val _500L = 500L
 
-    const val _06Float = 0.6f
+    const val _03Float = 0.3f
     const val _04Float = 0.4f
     const val _05Float = 0.5f
+    const val _06Float = 0.6f
     const val _075Float = 0.75f
     const val _1Float = 1f
 

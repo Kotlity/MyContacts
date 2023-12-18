@@ -13,8 +13,6 @@ import javax.inject.Inject
 
 class AppLanguageSettings @Inject constructor(@ApplicationContext private val context: Context): LanguageSettings {
 
-    override val currentLanguageCode: String = Locale.getDefault().language
-
     override fun changeAppLanguage(languageCode: String) {
         if (isGreaterOrEqualTiramisu()) {
             val localeManager = context.getSystemService(LocaleManager::class.java)

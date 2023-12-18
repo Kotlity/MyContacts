@@ -7,5 +7,5 @@ interface DataStoreHelper<T> {
 
     suspend fun editValue(key: Preferences.Key<T>, value: T)
 
-    fun retrieveValue(key: Preferences.Key<T>): Flow<T>
+    fun retrieveValue(key: Preferences.Key<T>, initialValue: T): Flow<T>
 }

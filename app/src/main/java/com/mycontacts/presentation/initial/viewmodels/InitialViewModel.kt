@@ -1,6 +1,6 @@
 package com.mycontacts.presentation.initial.viewmodels
 
-import android.util.Log
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -14,7 +14,6 @@ import com.mycontacts.utils.Constants._500L
 import com.mycontacts.utils.Constants.isDarkUiModePreferences
 import com.mycontacts.utils.ScreenRoutes
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -34,17 +33,21 @@ class InitialViewModel @Inject constructor(
     var startDestination by mutableStateOf(ScreenRoutes.Pager.route)
         private set
 
-    var isDarkUiMode by mutableStateOf(false)
+    var isDarkUiMode by derivedStateOf {
+        mutableStateOf(false)
+    }.value
         private set
 
-    var currentLanguageCode by mutableStateOf("")
+    var currentLanguageCode by derivedStateOf {
+        mutableStateOf("")
+    }.value
         private set
 
-    private var updatingIsDarkUiModeJob: Job? = null
+    var isExpandedLanguageDropdownMenu by mutableStateOf(false)
+        private set
 
     init {
         onEvent(InitialEvent.UpdateStartDestination)
-        onEvent(InitialEvent.RetrieveCurrentLanguageCode)
     }
 
     fun onEvent(initialEvent: InitialEvent) {
@@ -52,17 +55,20 @@ class InitialViewModel @Inject constructor(
             InitialEvent.UpdateStartDestination -> {
                 updateStartDestination()
             }
-            InitialEvent.RetrieveIsDarkUiModePreferences -> {
-                retrieveIsDarkUiModePreferences()
+            is InitialEvent.RetrieveIsDarkUiModePreferences -> {
+                retrieveIsDarkUiModePreferences(initialEvent.initialValue)
             }
             is InitialEvent.UpdateIsDarkUiModePreferences -> {
                 updateIsDarkUiModePreferences(initialEvent.isDarkUiMode)
             }
-            InitialEvent.RetrieveCurrentLanguageCode -> {
-                retrieveCurrentLanguageCode()
+            is InitialEvent.RetrieveCurrentLanguageCode -> {
+                retrieveCurrentLanguageCode(initialEvent.languageCode)
             }
             is InitialEvent.ChangeAppLanguage -> {
                 changeAppLanguage(initialEvent.languageCode)
+            }
+            is InitialEvent.ChangeLanguageDropdownMenuExpandedState -> {
+                changeLanguageDropdownMenuExpandedState(initialEvent.isExpanded)
             }
         }
     }
@@ -77,29 +83,28 @@ class InitialViewModel @Inject constructor(
     }
 
     private fun updateIsDarkUiModePreferences(isDarkUiMode: Boolean) {
-        updatingIsDarkUiModeJob?.cancel()
-        updatingIsDarkUiModeJob = viewModelScope.launch {
+        viewModelScope.launch {
             booleanDataStoreHelper.editValue(key = isDarkUiModePreferences, value = isDarkUiMode)
-            Log.e("MyTag", "updateIsDarkUiModePreferences: $isDarkUiMode")
         }
     }
 
-    private fun retrieveIsDarkUiModePreferences() {
-        updatingIsDarkUiModeJob?.invokeOnCompletion {
-            viewModelScope.launch {
-                booleanDataStoreHelper.retrieveValue(key = isDarkUiModePreferences).collect { isInDarkUiMode ->
-                    Log.e("MyTag", "isInDarkUiMode: $isInDarkUiMode")
-                    isDarkUiMode = isInDarkUiMode
-                }
+    private fun retrieveIsDarkUiModePreferences(initialValue: Boolean) {
+        viewModelScope.launch {
+            booleanDataStoreHelper.retrieveValue(key = isDarkUiModePreferences, initialValue = initialValue).collect { isInDarkUiMode ->
+                isDarkUiMode = isInDarkUiMode
             }
         }
     }
 
-    private fun retrieveCurrentLanguageCode() {
-        currentLanguageCode = languageSettings.currentLanguageCode
+    private fun retrieveCurrentLanguageCode(languageCode: String) {
+        currentLanguageCode = languageCode
     }
 
     private fun changeAppLanguage(languageCode: String) {
         languageSettings.changeAppLanguage(languageCode)
+    }
+
+    private fun changeLanguageDropdownMenuExpandedState(isExpanded: Boolean) {
+        isExpandedLanguageDropdownMenu = isExpanded
     }
 }

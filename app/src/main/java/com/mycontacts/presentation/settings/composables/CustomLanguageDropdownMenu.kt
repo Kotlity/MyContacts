@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomLanguageDropdownMenu(
+    modifier: Modifier = Modifier,
     isExpanded: Boolean = false,
     onExpandedChange: (Boolean) -> Unit,
     onLanguageChange: (String) -> Unit,
@@ -16,6 +17,7 @@ fun CustomLanguageDropdownMenu(
 ) {
 
     ExposedDropdownMenuBox(
+        modifier = modifier,
         expanded = isExpanded,
         onExpandedChange = onExpandedChange
     ) {

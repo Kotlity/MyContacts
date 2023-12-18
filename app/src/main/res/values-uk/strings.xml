@@ -45,4 +45,6 @@
     <string name="cameraPermissionIsDenied">У дозволі на камеру відмовлено. Надайте доступ через налаштування програми та повторіть спробу</string>
     <string name="cameraPermissionRationaleAlertDialogTitle">Потрібен дозвіл</string>
     <string name="cameraPermissionRationaleAlertDialogText">Щоб зробити фото, потрібно надати програмі доступ до камери вашого пристрою</string>
+    <string name="uiThemeTitle">Тема інтерфейсу користувача</string>
+    <string name="applicationLanguageTitle">Мова застосунку</string>
 </resources>

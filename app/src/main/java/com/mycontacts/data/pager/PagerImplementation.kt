@@ -13,6 +13,6 @@ class PagerImplementation @Inject constructor(private val dataStoreHelper: DataS
     }
 
     override fun hasUserAlreadyPressedStartButton(): Flow<Boolean> {
-        return dataStoreHelper.retrieveValue(hasUserAlreadyClickedOnStartButtonPreferences)
+        return dataStoreHelper.retrieveValue(hasUserAlreadyClickedOnStartButtonPreferences, false)
     }
 }
