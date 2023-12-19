@@ -17,7 +17,7 @@ object ContactOperationsModule {
 
     @Provides
     @ActivityScoped
-    fun provideContentResolver(@ApplicationContext context: Context) = context.contentResolver
+    fun provideContentResolver(@ApplicationContext context: Context): ContentResolver = context.contentResolver
 
     @Provides
     @ActivityScoped

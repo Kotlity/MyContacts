@@ -1,6 +1,8 @@
 package com.mycontacts.presentation.contact_operations.viewmodels
 
+import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -8,11 +10,15 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.mr0xf00.easycrop.ImageCropper
+import com.mr0xf00.easycrop.crop
 import com.mycontacts.data.contacts.ContactInfo
 import com.mycontacts.domain.contactOperations.ContactOperationsInterface
 import com.mycontacts.presentation.contact_operations.events.ContactOperationsEvent
 import com.mycontacts.presentation.contact_operations.events.ContactOperationsResultEvent
 import com.mycontacts.presentation.contact_operations.states.ContactOperationsButtonState
+import com.mycontacts.presentation.contact_operations.states.CropImageResult
+import com.mycontacts.presentation.contact_operations.states.CropImageType
 import com.mycontacts.presentation.contact_operations.states.DeleteIconsVisibilityState
 import com.mycontacts.presentation.contact_operations.viewmodels.factory.ContactOperationsViewModelFactory
 import com.mycontacts.utils.Constants.unsuccessfulAddingContactMessage
@@ -73,6 +79,11 @@ class ContactOperationsViewModel @AssistedInject constructor(
     var cameraPermissionRationaleAlertDialog by mutableStateOf(false)
         private set
 
+    var photoPickerUri: Uri? by mutableStateOf(Uri.EMPTY)
+        private set
+
+    val imageCropper = ImageCropper()
+
     private val cameraPermissionResultChannel = Channel<String>()
     val cameraPermissionResultFlow = cameraPermissionResultChannel.receiveAsFlow()
 
@@ -81,6 +92,9 @@ class ContactOperationsViewModel @AssistedInject constructor(
 
     private val contactOperationsResultChannel = Channel<ContactOperationsResultEvent>()
     val contactOperationsResultFlow = contactOperationsResultChannel.receiveAsFlow()
+
+    private val cropImageResultChannel = Channel<CropImageResult>()
+    val cropImageResultFlow = cropImageResultChannel.receiveAsFlow()
 
     init {
         onEvent(ContactOperationsEvent.InitialUpdate)
@@ -102,6 +116,9 @@ class ContactOperationsViewModel @AssistedInject constructor(
             }
             is ContactOperationsEvent.UpdatePhoneNumberTextField -> {
                 updatePhoneNumberTextField(contactOperationsEvent.phoneNumber)
+            }
+            is ContactOperationsEvent.CropImage -> {
+                cropImage(contactOperationsEvent.uri, contactOperationsEvent.context, contactOperationsEvent.cropImageType)
             }
             is ContactOperationsEvent.UpdatePhoto -> {
                 updatePhoto(contactOperationsEvent.bitmap)
@@ -132,6 +149,9 @@ class ContactOperationsViewModel @AssistedInject constructor(
             }
             ContactOperationsEvent.DeleteContactInfoLastName -> {
                 deleteContactInfoLastName()
+            }
+            ContactOperationsEvent.ClearPhotoPickerUri -> {
+                clearPhotoPickerUri()
             }
         }
     }
@@ -211,8 +231,27 @@ class ContactOperationsViewModel @AssistedInject constructor(
         phoneNumberValidationStatus = phoneNumberValidation
     }
 
+    private fun cropImage(uri: Uri, context: Context, cropImageType: CropImageType) {
+        viewModelScope.launch {
+            val cropResult = imageCropper.crop(uri, context)
+            when(cropImageType) {
+                CropImageType.CAMERA -> {
+                    cropImageResultChannel.send(CropImageResult(croppedResult = cropResult, cropImageType))
+                }
+                CropImageType.GALLERY -> {
+                    photoPickerUri = uri
+                    cropImageResultChannel.send(CropImageResult(croppedResult = cropResult, cropImageType))
+                }
+            }
+        }
+    }
+
     private fun updatePhoto(photoBitmap: Bitmap) {
         editableContactInfo = editableContactInfo.copy(photo = photoBitmap)
+    }
+
+    private fun clearPhotoPickerUri() {
+        photoPickerUri = null
     }
 
     private fun isSucceedTextFieldsValidation() = if (editableContactInfo.lastName != null || editableContactInfo.lastName?.isNotEmpty() == true) {

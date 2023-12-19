@@ -47,4 +47,5 @@
     <string name="cameraPermissionRationaleAlertDialogText">Щоб зробити фото, потрібно надати програмі доступ до камери вашого пристрою</string>
     <string name="uiThemeTitle">Тема інтерфейсу користувача</string>
     <string name="applicationLanguageTitle">Мова застосунку</string>
+    <string name="cropError">Під час обрізання зображення сталася помилка. Зображення збережено в стандартній роздільній здатності</string>
 </resources>

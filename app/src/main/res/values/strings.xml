@@ -46,6 +46,7 @@
     <string name="cameraPermissionRationaleAlertDialogText">To take a photo, you need to give the app access to your device\'s camera</string>
     <string name="uiThemeTitle">User interface theme</string>
     <string name="applicationLanguageTitle">Application language</string>
+    <string name="cropError">An error occurred while cropping the image. Image taken in standard resolution</string>
     <string name="usaLanguageCode" translatable="false">en</string>
     <string name="ukraineLanguageCode" translatable="false">uk</string>
 </resources>

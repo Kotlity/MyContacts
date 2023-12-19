@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -48,6 +49,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import com.mr0xf00.easycrop.CropError
+import com.mr0xf00.easycrop.CropResult
+import com.mr0xf00.easycrop.ui.ImageCropperDialog
 import com.mycontacts.R
 import com.mycontacts.presentation.contact_operations.composables.ContactImageActionModalBottomSheet
 import com.mycontacts.presentation.contact_operations.composables.ContactInfoButtonOperations
@@ -56,6 +60,7 @@ import com.mycontacts.presentation.contact_operations.composables.CustomAlertDia
 import com.mycontacts.presentation.contact_operations.composables.CustomTextField
 import com.mycontacts.presentation.contact_operations.composables.DeletePhotoOrLastNameIcon
 import com.mycontacts.presentation.contact_operations.events.ContactOperationsEvent
+import com.mycontacts.presentation.contact_operations.states.CropImageType
 import com.mycontacts.presentation.contact_operations.viewmodels.ContactOperationsViewModel
 import com.mycontacts.utils.Constants._075Float
 import com.mycontacts.utils.Constants._1000
@@ -101,6 +106,12 @@ fun ContactOperationsScreen(
 
     val contactOperationsResultFlow = contactOperationsViewModel.contactOperationsResultFlow
 
+    val photoPickerUri = contactOperationsViewModel.photoPickerUri
+
+    val cropperState = contactOperationsViewModel.imageCropper.cropState
+
+    val cropImageResultFlow = contactOperationsViewModel.cropImageResultFlow
+
     val cameraPermissionRationaleAlertDialog = contactOperationsViewModel.cameraPermissionRationaleAlertDialog
 
     var tempFilePhotoPath by remember {
@@ -118,10 +129,19 @@ fun ContactOperationsScreen(
         SnackbarHostState()
     }
 
+    val softwareKeyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+
+    val lastNameFocusRequester = remember {
+        FocusRequester()
+    }
+
+    val phoneNumberFocusRequester = remember {
+        FocusRequester()
+    }
+
     val cameraLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicture()) {
-        tempFilePhotoPath.uriToBitmap(contentResolver)?.let { bitmap ->
-            event(ContactOperationsEvent.UpdatePhoto(bitmap))
-        }
+        event(ContactOperationsEvent.CropImage(tempFilePhotoPath, context, CropImageType.CAMERA))
     }
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -134,22 +154,9 @@ fun ContactOperationsScreen(
     }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia()) { photoUri ->
-        photoUri?.let {
-            it.uriToBitmap(contentResolver)?.let { bitmap ->
-                event(ContactOperationsEvent.UpdatePhoto(bitmap))
-            }
+        photoUri?.let { uri ->
+            event(ContactOperationsEvent.CropImage(uri, context, CropImageType.GALLERY))
         }
-    }
-
-    val softwareKeyboardController = LocalSoftwareKeyboardController.current
-    val focusManager = LocalFocusManager.current
-
-    val lastNameFocusRequester = remember {
-        FocusRequester()
-    }
-
-    val phoneNumberFocusRequester = remember {
-        FocusRequester()
     }
 
     LaunchedEffect(key1 = editableContactInfo) {
@@ -159,7 +166,9 @@ fun ContactOperationsScreen(
     LaunchedEffect(
         deleteIconsResultFlow,
         contactOperationsResultFlow,
-        cameraPermissionResultFlow
+        cameraPermissionResultFlow,
+        cropImageResultFlow,
+        photoPickerUri
     ) {
         launch {
             deleteIconsResultFlow.collect { message ->
@@ -176,6 +185,60 @@ fun ContactOperationsScreen(
             cameraPermissionResultFlow.collect { permissionResultMessage ->
                 if (permissionResultMessage == context.getString(R.string.cameraPermissionIsGranted)) Toast.makeText(context, permissionResultMessage, Toast.LENGTH_SHORT).show()
                 else snackbarHostState.showSnackbar(message = permissionResultMessage, duration = SnackbarDuration.Long)
+            }
+        }
+        launch {
+            cropImageResultFlow.collect { cropImageResult ->
+                val cropImageType = cropImageResult.cropImageType
+                val cropResult = cropImageResult.croppedResult
+
+                when(cropImageType) {
+                    CropImageType.CAMERA -> {
+                        when(cropResult) {
+                            is CropResult.Success -> {
+                                val croppedBitmap = cropResult.bitmap.asAndroidBitmap()
+                                event(ContactOperationsEvent.UpdatePhoto(croppedBitmap))
+                            }
+                            is CropError -> {
+                                val defaultBitmap = tempFilePhotoPath.uriToBitmap(contentResolver)
+                                defaultBitmap?.let { bitmap ->
+                                    event(ContactOperationsEvent.UpdatePhoto(bitmap))
+                                }
+                                snackbarHostState.showSnackbar(message = context.getString(R.string.cropError))
+                            }
+                            CropResult.Cancelled -> {
+                                val defaultBitmap = tempFilePhotoPath.uriToBitmap(contentResolver)
+                                defaultBitmap?.let { bitmap ->
+                                    event(ContactOperationsEvent.UpdatePhoto(bitmap))
+                                }
+                            }
+                        }
+                    }
+                    CropImageType.GALLERY -> {
+                        when(cropResult) {
+                            is CropResult.Success -> {
+                                val croppedBitmap = cropResult.bitmap.asAndroidBitmap()
+                                event(ContactOperationsEvent.UpdatePhoto(croppedBitmap))
+                                event(ContactOperationsEvent.ClearPhotoPickerUri)
+                            }
+                            is CropError -> {
+                                val defaultBitmap = photoPickerUri?.uriToBitmap(contentResolver)
+                                defaultBitmap?.let { bitmap ->
+                                    event(ContactOperationsEvent.UpdatePhoto(bitmap))
+                                    event(ContactOperationsEvent.ClearPhotoPickerUri)
+                                }
+                                snackbarHostState.showSnackbar(message = context.getString(R.string.cropError))
+                            }
+                            CropResult.Cancelled -> {
+                                val defaultBitmap = photoPickerUri?.uriToBitmap(contentResolver)
+                                defaultBitmap?.let { bitmap ->
+                                    event(ContactOperationsEvent.UpdatePhoto(bitmap))
+                                    event(ContactOperationsEvent.ClearPhotoPickerUri)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -229,6 +292,10 @@ fun ContactOperationsScreen(
                 event(ContactOperationsEvent.UpdateCameraPermissionResult(permissionResult = context.getString(R.string.cameraPermissionIsDenied)))
             }
         )
+    }
+
+    if (cropperState != null) {
+        ImageCropperDialog(state = cropperState)
     }
 
     Scaffold(

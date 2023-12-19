@@ -14,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import com.mycontacts.R
@@ -28,7 +27,8 @@ fun ContactInfoPhoto(
     
     val photoBorderColor = animateColorAsState(
         targetValue = photoBitmap?.let { Color.Green } ?: Color.Red,
-        animationSpec = tween(durationMillis = _1000)
+        animationSpec = tween(durationMillis = _1000),
+        label = ""
     ).value
     
     if (photoBitmap != null) {
@@ -45,7 +45,6 @@ fun ContactInfoPhoto(
                 )
                 .clickable { onPhotoClick() },
             bitmap = photoBitmap.asImageBitmap(),
-            contentScale = ContentScale.Crop,
             contentDescription = null
         )
     } else {
@@ -62,7 +61,6 @@ fun ContactInfoPhoto(
                 )
                 .clickable { onPhotoClick() },
             painter = painterResource(id = R.drawable.no_image_contact),
-            contentScale = ContentScale.Crop,
             contentDescription = null
         )
     }
